@@ -1,48 +1,91 @@
-
-
 def create_bull_researcher(llm):
     def bull_node(state) -> dict:
-        investment_debate_state = state["investment_debate_state"]
-        history = investment_debate_state.get("history", "")
-        bull_history = investment_debate_state.get("bull_history", "")
+        debate_state = state["research_debate_state"]
+        history = debate_state.get("history", "")
+        bullish_history = debate_state.get("bullish_history", "")
+        current_response = debate_state.get("current_response", "")
 
-        current_response = investment_debate_state.get("current_response", "")
-        market_research_report = state["market_report"]
-        sentiment_report = state["sentiment_report"]
-        news_report = state["news_report"]
-        fundamentals_report = state["fundamentals_report"]
+        # Build the macro report reference (may be empty if macro analyst not selected)
+        macro_section = ""
+        macro_report = state.get("macro_report", "")
+        if macro_report:
+            macro_section = f"\nMacroeconomic report: {macro_report}"
 
-        prompt = f"""You are a Bull Analyst advocating for investing in the stock. Your task is to build a strong, evidence-based case emphasizing growth potential, competitive advantages, and positive market indicators. Leverage the provided research and data to address concerns and counter bearish arguments effectively.
+        prompt = f"""You are a **Senior Bullish Equity Researcher** — a conviction-driven analyst who builds rigorous, evidence-based investment theses. You are NOT a cheerleader. You are a disciplined researcher who finds genuine alpha in holdings that others underestimate.
 
-Key points to focus on:
-- Growth Potential: Highlight the company's market opportunities, revenue projections, and scalability.
-- Competitive Advantages: Emphasize factors like unique products, strong branding, or dominant market positioning.
-- Positive Indicators: Use financial health, industry trends, and recent positive news as evidence.
-- Bear Counterpoints: Critically analyze the bear argument with specific data and sound reasoning, addressing concerns thoroughly and showing why the bull perspective holds stronger merit.
-- Engagement: Present your argument in a conversational style, engaging directly with the bear analyst's points and debating effectively rather than just listing data.
+## YOUR ROLE IN THE RESEARCH TEAM
+You are in a structured adversarial debate with the Bearish Researcher. Your job is to:
+1. Build the STRONGEST possible bullish case using ONLY the evidence from the analyst reports
+2. Directly counter the Bear's arguments with specific data points
+3. Identify asymmetric upside that the Bear has overlooked
+4. Assign conviction levels to each argument
 
-Resources available:
-Market research report: {market_research_report}
-Social media sentiment report: {sentiment_report}
-Latest world affairs news: {news_report}
-Company fundamentals report: {fundamentals_report}
-Conversation history of the debate: {history}
-Last bear argument: {current_response}
-Use this information to deliver a compelling bull argument, refute the bear's concerns, and engage in a dynamic debate that demonstrates the strengths of the bull position.
-"""
+## EVIDENCE BASE — Use ONLY these reports (do not fabricate data):
+Portfolio context:
+{state["portfolio_context"]}
+
+Market (Technical) report: {state["market_report"]}
+Sentiment report: {state["sentiment_report"]}
+News report: {state["news_report"]}
+Fundamentals report: {state["fundamentals_report"]}{macro_section}
+
+## PREVIOUS DEBATE HISTORY:
+{history}
+
+## BEAR'S LATEST ARGUMENT TO COUNTER:
+{current_response}
+
+## YOUR ANALYTICAL FRAMEWORK — Structure your argument as follows:
+
+### 1. Thesis Statement (2-3 sentences)
+State the core bullish thesis for this portfolio. Be specific and testable.
+
+### 2. Evidence Pillars (rank by conviction)
+For each argument:
+- **Claim**: The specific bullish point
+- **Evidence**: The EXACT data from analyst reports that supports it (cite numbers, quotes)
+- **Conviction**: [HIGH / MEDIUM / LOW] — be honest about strength
+- **Bear Counter-Rebuttal**: If the Bear raised this, explain why their concern is overstated
+
+### 3. Upside Catalysts
+- Specific events/developments that could drive the portfolio higher
+- Timeline for each catalyst
+- Magnitude of potential impact
+
+### 4. Asymmetric Opportunities
+- What is the market UNDERPRICING in this portfolio?
+- Where is the consensus too bearish?
+- Quantify the upside if the bull case plays out vs. the downside if it doesn't
+
+### 5. Portfolio Strengths
+- Diversification benefits between holdings
+- Quality factors that provide downside protection
+- Competitive advantages (moats) across holdings
+
+### 6. Honest Weaknesses Acknowledgment
+Every credible bull case acknowledges risks. Name 2-3 legitimate concerns and explain why the risk/reward still favors the bull case despite them.
+
+CRITICAL RULES:
+- CITE SPECIFIC DATA from the analyst reports. Never say "strong fundamentals" — say "operating margin of 28.4%, up 3.2pp YoY"
+- DO NOT fabricate data that isn't in the analyst reports
+- Assign conviction levels honestly — not everything is HIGH conviction
+- Frame as research feedback, NOT buy/sell instructions"""
 
         response = llm.invoke(prompt)
+        argument = f"Bullish Researcher: {response.content}"
 
-        argument = f"Bull Analyst: {response.content}"
-
-        new_investment_debate_state = {
+        new_state = {
             "history": history + "\n" + argument,
-            "bull_history": bull_history + "\n" + argument,
-            "bear_history": investment_debate_state.get("bear_history", ""),
+            "bullish_history": bullish_history + "\n" + argument,
+            "bearish_history": debate_state.get("bearish_history", ""),
             "current_response": argument,
-            "count": investment_debate_state["count"] + 1,
+            "judge_decision": debate_state.get("judge_decision", ""),
+            "count": debate_state["count"] + 1,
         }
 
-        return {"investment_debate_state": new_investment_debate_state}
+        return {
+            "research_debate_state": new_state,
+            "bullish_research": new_state["bullish_history"],
+        }
 
     return bull_node

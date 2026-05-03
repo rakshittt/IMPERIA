@@ -38,10 +38,10 @@ def _node_b(state: _SimpleState) -> dict:
 def _build_graph() -> StateGraph:
     builder = StateGraph(_SimpleState)
     builder.add_node("analyst", _node_a)
-    builder.add_node("trader", _node_b)
+    builder.add_node("risk", _node_b)
     builder.set_entry_point("analyst")
-    builder.add_edge("analyst", "trader")
-    builder.add_edge("trader", END)
+    builder.add_edge("analyst", "risk")
+    builder.add_edge("risk", END)
     return builder
 
 
@@ -52,13 +52,13 @@ class TestCheckpointResume(unittest.TestCase):
         self.date = "2026-04-20"
 
     def test_crash_and_resume(self):
-        """Crash at 'trader' node, then resume from checkpoint."""
+        """Crash at risk node, then resume from checkpoint."""
         global _should_crash
         builder = _build_graph()
         tid = thread_id(self.ticker, self.date)
         cfg = {"configurable": {"thread_id": tid}}
 
-        # Run 1: crash at trader node
+        # Run 1: crash at risk node
         _should_crash = True
         with get_checkpointer(self.tmpdir, self.ticker) as saver:
             graph = builder.compile(checkpointer=saver)
@@ -70,13 +70,13 @@ class TestCheckpointResume(unittest.TestCase):
         step = checkpoint_step(self.tmpdir, self.ticker, self.date)
         self.assertEqual(step, 1)
 
-        # Run 2: resume — trader succeeds this time
+        # Run 2: resume succeeds this time
         _should_crash = False
         with get_checkpointer(self.tmpdir, self.ticker) as saver:
             graph = builder.compile(checkpointer=saver)
             result = graph.invoke(None, config=cfg)
 
-        # analyst added 1, trader added 10 → 11
+        # analyst added 1, risk added 10 -> 11
         self.assertEqual(result["count"], 11)
 
     def test_clear_checkpoint_allows_fresh_start(self):
@@ -136,7 +136,7 @@ class TestCheckpointResume(unittest.TestCase):
             graph = builder.compile(checkpointer=saver)
             result = graph.invoke({"count": 0}, config={"configurable": {"thread_id": tid2}})
 
-        # Fresh run: analyst +1, trader +10 = 11
+        # Fresh run: analyst +1, risk +10 = 11
         self.assertEqual(result["count"], 11)
 
         # Original date checkpoint still exists (untouched)

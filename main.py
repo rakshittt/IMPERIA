@@ -23,9 +23,15 @@ config["data_vendors"] = {
 # Initialize with custom config
 ta = TradingAgentsGraph(debug=True, config=config)
 
-# forward propagate
-_, decision = ta.propagate("NVDA", "2024-05-10")
-print(decision)
-
-# Memorize mistakes and reflect
-# ta.reflect_and_remember(1000) # parameter is the position returns
+# Analyze a portfolio
+portfolio = [
+    {"ticker": "NVDA", "weight": 0.6},
+    {"ticker": "MSFT", "weight": 0.4},
+]
+user_profile = {
+    "risk_tolerance": "moderate",
+    "time_horizon": "3-5 years",
+    "goals": "long-term growth",
+}
+_, feedback = ta.analyze_portfolio(portfolio, "2024-05-10", user_profile=user_profile)
+print(feedback)

@@ -1,228 +1,200 @@
-"""Pydantic schemas used by agents that produce structured output.
+"""Pydantic schemas used by portfolio research agents.
 
 The framework's primary artifact is still prose: each agent's natural-language
-reasoning is what users read in the saved markdown reports and what the
-downstream agents read as context.  Structured output is layered onto the
-three decision-making agents (Research Manager, Trader, Portfolio Manager)
-so that:
-
-- Their outputs follow consistent section headers across runs and providers
-- Each provider's native structured-output mode is used (json_schema for
-  OpenAI/xAI, response_schema for Gemini, tool-use for Anthropic)
-- Schema field descriptions become the model's output instructions, freeing
-  the prompt body to focus on context and the rating-scale guidance
-- A render helper turns the parsed Pydantic instance back into the same
-  markdown shape the rest of the system already consumes, so display,
-  memory log, and saved reports keep working unchanged
+reasoning is what users read in saved markdown reports and what downstream
+agents read as context. Structured output is layered onto the Research Manager
+and Portfolio Feedback Manager so their reports keep a consistent shape across
+LLM providers while remaining advisory and research-oriented.
 """
 
 from __future__ import annotations
 
-from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
-# ---------------------------------------------------------------------------
-# Shared rating types
-# ---------------------------------------------------------------------------
+class PortfolioHolding(BaseModel):
+    """A single user portfolio holding."""
 
-
-class PortfolioRating(str, Enum):
-    """5-tier rating used by the Research Manager and Portfolio Manager."""
-
-    BUY = "Buy"
-    OVERWEIGHT = "Overweight"
-    HOLD = "Hold"
-    UNDERWEIGHT = "Underweight"
-    SELL = "Sell"
-
-
-class TraderAction(str, Enum):
-    """3-tier transaction direction used by the Trader.
-
-    The Trader's job is to translate the Research Manager's investment plan
-    into a concrete transaction proposal: should the desk execute a Buy, a
-    Sell, or sit on Hold this round.  Position sizing and the nuanced
-    Overweight / Underweight calls happen later at the Portfolio Manager.
-    """
-
-    BUY = "Buy"
-    HOLD = "Hold"
-    SELL = "Sell"
-
-
-# ---------------------------------------------------------------------------
-# Research Manager
-# ---------------------------------------------------------------------------
-
-
-class ResearchPlan(BaseModel):
-    """Structured investment plan produced by the Research Manager.
-
-    Hand-off to the Trader: the recommendation pins the directional view,
-    the rationale captures which side of the bull/bear debate carried the
-    argument, and the strategic actions translate that into concrete
-    instructions the trader can execute against.
-    """
-
-    recommendation: PortfolioRating = Field(
-        description=(
-            "The investment recommendation. Exactly one of Buy / Overweight / "
-            "Hold / Underweight / Sell. Reserve Hold for situations where the "
-            "evidence on both sides is genuinely balanced; otherwise commit to "
-            "the side with the stronger arguments."
-        ),
-    )
-    rationale: str = Field(
-        description=(
-            "Conversational summary of the key points from both sides of the "
-            "debate, ending with which arguments led to the recommendation. "
-            "Speak naturally, as if to a teammate."
-        ),
-    )
-    strategic_actions: str = Field(
-        description=(
-            "Concrete steps for the trader to implement the recommendation, "
-            "including position sizing guidance consistent with the rating."
-        ),
-    )
-
-
-def render_research_plan(plan: ResearchPlan) -> str:
-    """Render a ResearchPlan to markdown for storage and the trader's prompt context."""
-    return "\n".join([
-        f"**Recommendation**: {plan.recommendation.value}",
-        "",
-        f"**Rationale**: {plan.rationale}",
-        "",
-        f"**Strategic Actions**: {plan.strategic_actions}",
-    ])
-
-
-# ---------------------------------------------------------------------------
-# Trader
-# ---------------------------------------------------------------------------
-
-
-class TraderProposal(BaseModel):
-    """Structured transaction proposal produced by the Trader.
-
-    The trader reads the Research Manager's investment plan and the analyst
-    reports, then turns them into a concrete transaction: what action to
-    take, the reasoning that justifies it, and the practical levels for
-    entry, stop-loss, and sizing.
-    """
-
-    action: TraderAction = Field(
-        description="The transaction direction. Exactly one of Buy / Hold / Sell.",
-    )
-    reasoning: str = Field(
-        description=(
-            "The case for this action, anchored in the analysts' reports and "
-            "the research plan. Two to four sentences."
-        ),
-    )
-    entry_price: Optional[float] = Field(
+    ticker: str = Field(description="Ticker symbol, preserving exchange suffixes.")
+    weight: Optional[float] = Field(
         default=None,
-        description="Optional entry price target in the instrument's quote currency.",
+        description="Optional portfolio weight as a decimal, e.g. 0.25 for 25%.",
     )
-    stop_loss: Optional[float] = Field(
+    shares: Optional[float] = Field(
         default=None,
-        description="Optional stop-loss price in the instrument's quote currency.",
+        description="Optional number of shares held.",
     )
-    position_sizing: Optional[str] = Field(
+    cost_basis: Optional[float] = Field(
         default=None,
-        description="Optional sizing guidance, e.g. '5% of portfolio'.",
+        description="Optional average cost basis in the instrument's quote currency.",
     )
 
+    @field_validator("ticker")
+    @classmethod
+    def ticker_must_be_nonempty(cls, value: str) -> str:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError("ticker must be a non-empty string")
+        return value.strip().upper()
 
-def render_trader_proposal(proposal: TraderProposal) -> str:
-    """Render a TraderProposal to markdown.
+    @field_validator("weight")
+    @classmethod
+    def weight_must_be_nonnegative(cls, value: Optional[float]) -> Optional[float]:
+        if value is not None and value < 0:
+            raise ValueError("weight must be non-negative")
+        return value
 
-    The trailing ``FINAL TRANSACTION PROPOSAL: **BUY/HOLD/SELL**`` line is
-    preserved for backward compatibility with the analyst stop-signal text
-    and any external code that greps for it.
-    """
-    parts = [
-        f"**Action**: {proposal.action.value}",
-        "",
-        f"**Reasoning**: {proposal.reasoning}",
-    ]
-    if proposal.entry_price is not None:
-        parts.extend(["", f"**Entry Price**: {proposal.entry_price}"])
-    if proposal.stop_loss is not None:
-        parts.extend(["", f"**Stop Loss**: {proposal.stop_loss}"])
-    if proposal.position_sizing:
-        parts.extend(["", f"**Position Sizing**: {proposal.position_sizing}"])
-    parts.extend([
-        "",
-        f"FINAL TRANSACTION PROPOSAL: **{proposal.action.value.upper()}**",
-    ])
-    return "\n".join(parts)
+    @field_validator("shares", "cost_basis")
+    @classmethod
+    def numeric_fields_must_be_nonnegative(
+        cls, value: Optional[float]
+    ) -> Optional[float]:
+        if value is not None and value < 0:
+            raise ValueError("shares and cost_basis must be non-negative")
+        return value
 
 
-# ---------------------------------------------------------------------------
-# Portfolio Manager
-# ---------------------------------------------------------------------------
+class UserProfile(BaseModel):
+    """Optional user context used to tailor portfolio feedback."""
+
+    risk_tolerance: Optional[str] = Field(default=None)
+    time_horizon: Optional[str] = Field(default=None)
+    goals: Optional[str] = Field(default=None)
+    constraints: Optional[str] = Field(default=None)
 
 
-class PortfolioDecision(BaseModel):
-    """Structured output produced by the Portfolio Manager.
+class ResearchSynthesis(BaseModel):
+    """Portfolio-level synthesis produced by the Research Manager."""
 
-    The model fills every field as part of its primary LLM call; no separate
-    extraction pass is required. Field descriptions double as the model's
-    output instructions, so the prompt body only needs to convey context and
-    the rating-scale guidance.
-    """
-
-    rating: PortfolioRating = Field(
+    overall_research_view: str = Field(
         description=(
-            "The final position rating. Exactly one of Buy / Overweight / Hold / "
-            "Underweight / Sell, picked based on the analysts' debate."
+            "A concise synthesis of the portfolio research debate, including "
+            "which arguments carried the most weight and why."
         ),
     )
-    executive_summary: str = Field(
+    bullish_summary: str = Field(
+        description="The strongest portfolio-level bullish arguments.",
+    )
+    bearish_summary: str = Field(
+        description="The strongest portfolio-level bearish arguments.",
+    )
+    key_portfolio_implications: str = Field(
         description=(
-            "A concise action plan covering entry strategy, position sizing, "
-            "key risk levels, and time horizon. Two to four sentences."
+            "Practical implications for the user's holdings, exposures, "
+            "diversification, and monitoring priorities."
         ),
     )
-    investment_thesis: str = Field(
+
+
+def render_research_synthesis(synthesis: ResearchSynthesis) -> str:
+    """Render a ResearchSynthesis instance to markdown."""
+    return "\n".join(
+        [
+            f"**Overall Research View**: {synthesis.overall_research_view}",
+            "",
+            f"**Bullish Summary**: {synthesis.bullish_summary}",
+            "",
+            f"**Bearish Summary**: {synthesis.bearish_summary}",
+            "",
+            (
+                "**Key Portfolio Implications**: "
+                f"{synthesis.key_portfolio_implications}"
+            ),
+        ]
+    )
+
+
+class PortfolioFeedback(BaseModel):
+    """Structured portfolio feedback produced by the Portfolio Feedback Manager."""
+
+    overall_assessment: str = Field(
+        description="A concise overall assessment of the user's portfolio.",
+    )
+    portfolio_recommendation: str = Field(
         description=(
-            "Detailed reasoning anchored in specific evidence from the analysts' "
-            "debate. If prior lessons are referenced in the prompt context, "
-            "incorporate them; otherwise rely solely on the current analysis."
+            "Research-oriented feedback for the user to consider. Do not frame "
+            "this as an executable directive or instruction to transact."
         ),
     )
-    price_target: Optional[float] = Field(
-        default=None,
-        description="Optional target price in the instrument's quote currency.",
+    bullish_summary: str = Field(description="Positive case for the portfolio.")
+    bearish_summary: str = Field(description="Negative case for the portfolio.")
+    market_impact: str = Field(
+        description="How current market and technical conditions affect holdings.",
     )
-    time_horizon: Optional[str] = Field(
-        default=None,
-        description="Optional recommended holding period, e.g. '3-6 months'.",
+    news_impact: str = Field(
+        description="How company-specific and macro news affect the portfolio.",
+    )
+    sentiment_impact: str = Field(
+        description="How social and media sentiment affect holdings.",
+    )
+    fundamentals_impact: str = Field(
+        description="How valuation, quality, balance sheet, cash flow, and earnings affect holdings.",
+    )
+    risk_assessment: str = Field(
+        description="Portfolio risk assessment including volatility, correlation, liquidity, and downside scenarios.",
+    )
+    diversification_feedback: str = Field(
+        description="Concentration, sector, geography, and exposure feedback.",
+    )
+    holding_level_feedback: str = Field(
+        description="Holding-by-holding observations and research-backed feedback.",
+    )
+    suggested_actions_to_consider: str = Field(
+        description=(
+            "Practical research-oriented actions the user may consider, such as "
+            "monitoring, reviewing allocations, or seeking professional advice."
+        ),
+    )
+    monitoring_points: str = Field(
+        description="Specific metrics, events, or risks to monitor.",
+    )
+    confidence_level: str = Field(
+        description="Confidence in the analysis, with reasoning and caveats.",
+    )
+    disclaimer: str = Field(
+        description=(
+            "Must state that this is educational research and not personalized "
+            "financial advice or an instruction to trade."
+        ),
     )
 
 
-def render_pm_decision(decision: PortfolioDecision) -> str:
-    """Render a PortfolioDecision back to the markdown shape the rest of the system expects.
-
-    Memory log, CLI display, and saved report files all read this markdown,
-    so the rendered output preserves the exact section headers (``**Rating**``,
-    ``**Executive Summary**``, ``**Investment Thesis**``) that downstream
-    parsers and the report writers already handle.
-    """
-    parts = [
-        f"**Rating**: {decision.rating.value}",
-        "",
-        f"**Executive Summary**: {decision.executive_summary}",
-        "",
-        f"**Investment Thesis**: {decision.investment_thesis}",
-    ]
-    if decision.price_target is not None:
-        parts.extend(["", f"**Price Target**: {decision.price_target}"])
-    if decision.time_horizon:
-        parts.extend(["", f"**Time Horizon**: {decision.time_horizon}"])
-    return "\n".join(parts)
+def render_portfolio_feedback(feedback: PortfolioFeedback) -> str:
+    """Render PortfolioFeedback to markdown for CLI, reports, and memory."""
+    return "\n".join(
+        [
+            f"**Overall Assessment**: {feedback.overall_assessment}",
+            "",
+            f"**Portfolio Recommendation**: {feedback.portfolio_recommendation}",
+            "",
+            f"**Bullish Summary**: {feedback.bullish_summary}",
+            "",
+            f"**Bearish Summary**: {feedback.bearish_summary}",
+            "",
+            f"**Market Impact**: {feedback.market_impact}",
+            "",
+            f"**News Impact**: {feedback.news_impact}",
+            "",
+            f"**Sentiment Impact**: {feedback.sentiment_impact}",
+            "",
+            f"**Fundamentals Impact**: {feedback.fundamentals_impact}",
+            "",
+            f"**Risk Assessment**: {feedback.risk_assessment}",
+            "",
+            f"**Diversification Feedback**: {feedback.diversification_feedback}",
+            "",
+            f"**Holding-Level Feedback**: {feedback.holding_level_feedback}",
+            "",
+            (
+                "**Suggested Actions To Consider**: "
+                f"{feedback.suggested_actions_to_consider}"
+            ),
+            "",
+            f"**Monitoring Points**: {feedback.monitoring_points}",
+            "",
+            f"**Confidence Level**: {feedback.confidence_level}",
+            "",
+            f"**Disclaimer**: {feedback.disclaimer}",
+        ]
+    )

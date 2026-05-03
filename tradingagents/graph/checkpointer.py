@@ -1,7 +1,4 @@
-"""LangGraph checkpoint support for resumable analysis runs.
-
-Per-ticker SQLite databases so concurrent tickers don't contend.
-"""
+"""LangGraph checkpoint support for resumable portfolio analysis runs."""
 
 from __future__ import annotations
 
@@ -16,18 +13,17 @@ from langgraph.checkpoint.sqlite import SqliteSaver
 from tradingagents.dataflows.utils import safe_ticker_component
 
 
-def _db_path(data_dir: str | Path, ticker: str) -> Path:
-    """Return the SQLite checkpoint DB path for a ticker."""
-    # Reject ticker values that would escape the checkpoints directory.
-    safe = safe_ticker_component(ticker).upper()
+def _db_path(data_dir: str | Path, portfolio_key: str) -> Path:
+    """Return the SQLite checkpoint DB path for a portfolio key."""
+    safe = safe_ticker_component(portfolio_key, max_len=64).upper()
     p = Path(data_dir) / "checkpoints"
     p.mkdir(parents=True, exist_ok=True)
     return p / f"{safe}.db"
 
 
-def thread_id(ticker: str, date: str) -> str:
-    """Deterministic thread ID for a ticker+date pair."""
-    return hashlib.sha256(f"{ticker.upper()}:{date}".encode()).hexdigest()[:16]
+def thread_id(portfolio_key: str, date: str) -> str:
+    """Deterministic thread ID for a portfolio+date pair."""
+    return hashlib.sha256(f"{portfolio_key.upper()}:{date}".encode()).hexdigest()[:16]
 
 
 @contextmanager
@@ -44,7 +40,7 @@ def get_checkpointer(data_dir: str | Path, ticker: str) -> Generator[SqliteSaver
 
 
 def has_checkpoint(data_dir: str | Path, ticker: str, date: str) -> bool:
-    """Check whether a resumable checkpoint exists for ticker+date."""
+    """Check whether a resumable checkpoint exists for portfolio+date."""
     return checkpoint_step(data_dir, ticker, date) is not None
 
 
@@ -74,7 +70,7 @@ def clear_all_checkpoints(data_dir: str | Path) -> int:
 
 
 def clear_checkpoint(data_dir: str | Path, ticker: str, date: str) -> None:
-    """Remove checkpoint for a specific ticker+date by deleting the thread's rows."""
+    """Remove checkpoint for a specific portfolio+date by deleting thread rows."""
     db = _db_path(data_dir, ticker)
     if not db.exists():
         return

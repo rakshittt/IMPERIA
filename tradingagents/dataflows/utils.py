@@ -1,3 +1,4 @@
+import hashlib
 import os
 import re
 import json
@@ -39,6 +40,47 @@ def safe_ticker_component(value: str, *, max_len: int = 32) -> str:
     if set(value) == {"."}:
         raise ValueError(f"ticker cannot consist solely of dots: {value!r}")
     return value
+
+
+def portfolio_key(portfolio: list[dict], *, max_len: int = 48) -> str:
+    """Return a deterministic filesystem-safe key for a portfolio.
+
+    The visible portion keeps the first few normalized tickers readable, while
+    the digest includes weights, shares, and cost basis so different portfolios
+    do not collide just because they hold the same tickers.
+    """
+    if not isinstance(portfolio, list) or not portfolio:
+        raise ValueError("portfolio must be a non-empty list of holdings")
+
+    normalized = []
+    tickers = []
+    def _number(value):
+        return None if value is None else float(value)
+
+    for holding in portfolio:
+        if not isinstance(holding, dict):
+            raise ValueError(f"portfolio holding must be a dict, got {holding!r}")
+        ticker = safe_ticker_component(str(holding.get("ticker", "")).strip().upper())
+        tickers.append(ticker)
+        normalized.append(
+            {
+                "ticker": ticker,
+                "weight": _number(holding.get("weight")),
+                "shares": _number(holding.get("shares")),
+                "cost_basis": _number(holding.get("cost_basis")),
+            }
+        )
+
+    digest = hashlib.sha256(
+        json.dumps(normalized, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()[:10]
+    ticker_part = "_".join(tickers[:3])
+    if len(tickers) > 3:
+        ticker_part = f"{ticker_part}_{len(tickers)}H"
+
+    reserved = len("PF__") + len(digest)
+    ticker_part = ticker_part[: max(1, max_len - reserved)]
+    return safe_ticker_component(f"PF_{ticker_part}_{digest}", max_len=max_len)
 
 
 def save_output(data: pd.DataFrame, tag: str, save_path: SavePathType = None) -> None:

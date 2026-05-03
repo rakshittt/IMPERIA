@@ -1,50 +1,99 @@
-
-
 def create_bear_researcher(llm):
     def bear_node(state) -> dict:
-        investment_debate_state = state["investment_debate_state"]
-        history = investment_debate_state.get("history", "")
-        bear_history = investment_debate_state.get("bear_history", "")
+        debate_state = state["research_debate_state"]
+        history = debate_state.get("history", "")
+        bearish_history = debate_state.get("bearish_history", "")
+        current_response = debate_state.get("current_response", "")
 
-        current_response = investment_debate_state.get("current_response", "")
-        market_research_report = state["market_report"]
-        sentiment_report = state["sentiment_report"]
-        news_report = state["news_report"]
-        fundamentals_report = state["fundamentals_report"]
+        # Build the macro report reference (may be empty if macro analyst not selected)
+        macro_section = ""
+        macro_report = state.get("macro_report", "")
+        if macro_report:
+            macro_section = f"\nMacroeconomic report: {macro_report}"
 
-        prompt = f"""You are a Bear Analyst making the case against investing in the stock. Your goal is to present a well-reasoned argument emphasizing risks, challenges, and negative indicators. Leverage the provided research and data to highlight potential downsides and counter bullish arguments effectively.
+        prompt = f"""You are a **Senior Bearish Equity Researcher** — a forensic analyst who specializes in finding what others miss. You are NOT a pessimist. You are a risk detective who protects capital by identifying genuine threats, overvaluation, and fragile assumptions.
 
-Key points to focus on:
+## YOUR ROLE IN THE RESEARCH TEAM
+You are in a structured adversarial debate with the Bullish Researcher. Your job is to:
+1. Build the STRONGEST possible bearish case using ONLY the evidence from the analyst reports
+2. Directly challenge the Bull's assumptions with specific data points
+3. Identify hidden risks, fragile dependencies, and overvaluation that the Bull has glossed over
+4. Assign conviction levels to each argument
 
-- Risks and Challenges: Highlight factors like market saturation, financial instability, or macroeconomic threats that could hinder the stock's performance.
-- Competitive Weaknesses: Emphasize vulnerabilities such as weaker market positioning, declining innovation, or threats from competitors.
-- Negative Indicators: Use evidence from financial data, market trends, or recent adverse news to support your position.
-- Bull Counterpoints: Critically analyze the bull argument with specific data and sound reasoning, exposing weaknesses or over-optimistic assumptions.
-- Engagement: Present your argument in a conversational style, directly engaging with the bull analyst's points and debating effectively rather than simply listing facts.
+## EVIDENCE BASE — Use ONLY these reports (do not fabricate data):
+Portfolio context:
+{state["portfolio_context"]}
 
-Resources available:
+Market (Technical) report: {state["market_report"]}
+Sentiment report: {state["sentiment_report"]}
+News report: {state["news_report"]}
+Fundamentals report: {state["fundamentals_report"]}{macro_section}
 
-Market research report: {market_research_report}
-Social media sentiment report: {sentiment_report}
-Latest world affairs news: {news_report}
-Company fundamentals report: {fundamentals_report}
-Conversation history of the debate: {history}
-Last bull argument: {current_response}
-Use this information to deliver a compelling bear argument, refute the bull's claims, and engage in a dynamic debate that demonstrates the risks and weaknesses of investing in the stock.
-"""
+## PREVIOUS DEBATE HISTORY:
+{history}
+
+## BULL'S LATEST ARGUMENT TO COUNTER:
+{current_response}
+
+## YOUR ANALYTICAL FRAMEWORK — Structure your argument as follows:
+
+### 1. Thesis Statement (2-3 sentences)
+State the core bearish thesis for this portfolio. Be specific and testable.
+
+### 2. Risk Pillars (rank by severity)
+For each argument:
+- **Risk**: The specific bearish concern
+- **Evidence**: The EXACT data from analyst reports that supports it (cite numbers, quotes)
+- **Severity**: [CRITICAL / HIGH / MEDIUM] — be calibrated, not alarmist
+- **Bull Counter-Rebuttal**: If the Bull raised this, explain why their optimism is misplaced
+
+### 3. Downside Catalysts
+- Specific events/developments that could damage the portfolio
+- Probability assessment for each
+- Estimated magnitude of impact (% drawdown)
+
+### 4. Hidden Risks & Fragilities
+- **Correlation Risk**: Are holdings more correlated than they appear?
+- **Concentration Risk**: What happens if the largest position drops 20%?
+- **Assumption Fragility**: What consensus assumptions must hold for the bull case to work? Which could break?
+- **Second-Order Effects**: If X happens, then Y follows — map the cascading risks
+
+### 5. Valuation Vulnerabilities
+- Which holdings are priced for perfection (and what "perfection" means specifically)?
+- Multiple compression risk — what P/E does each holding revert to in a downturn?
+- Earnings revision risk — who is most likely to miss estimates?
+
+### 6. Pre-Mortem Analysis
+Imagine this portfolio has lost 25% in 6 months. Write the post-mortem:
+- What were the warning signs we should have seen?
+- Which risks materialized?
+- What was the sequence of events?
+
+### 7. Honest Strengths Acknowledgment
+Every credible bear case acknowledges quality. Name 2-3 legitimate bullish points and explain why they are insufficient to overcome the risks identified.
+
+CRITICAL RULES:
+- CITE SPECIFIC DATA from the analyst reports. Never say "overvalued" — say "P/E of 42x vs. sector median of 22x, implying 90% premium"
+- DO NOT fabricate data that isn't in the analyst reports
+- Distinguish between LIKELY risks and TAIL risks — don't treat everything as catastrophic
+- The best bear case is SPECIFIC, not generic. "The economy could slow down" is lazy. "Net debt/EBITDA of 4.2x with $2.3B in debt maturing in 2025 during a high-rate environment" is research.
+- Frame as research feedback, NOT sell instructions"""
 
         response = llm.invoke(prompt)
+        argument = f"Bearish Researcher: {response.content}"
 
-        argument = f"Bear Analyst: {response.content}"
-
-        new_investment_debate_state = {
+        new_state = {
             "history": history + "\n" + argument,
-            "bear_history": bear_history + "\n" + argument,
-            "bull_history": investment_debate_state.get("bull_history", ""),
+            "bearish_history": bearish_history + "\n" + argument,
+            "bullish_history": debate_state.get("bullish_history", ""),
             "current_response": argument,
-            "count": investment_debate_state["count"] + 1,
+            "judge_decision": debate_state.get("judge_decision", ""),
+            "count": debate_state["count"] + 1,
         }
 
-        return {"investment_debate_state": new_investment_debate_state}
+        return {
+            "research_debate_state": new_state,
+            "bearish_research": new_state["bearish_history"],
+        }
 
     return bear_node
