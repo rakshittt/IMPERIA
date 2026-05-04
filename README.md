@@ -1,136 +1,167 @@
 <p align="center">
-  <img src="assets/TauricResearch.png" style="width: 60%; height: auto;">
+  <img src="assets/TauricResearch.png" style="width: 70%; height: auto; border-radius: 12px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);">
 </p>
 
-# TradingAgents: Research-Grade Financial Intelligence Platform
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python" alt="Python Version">
+  <img src="https://img.shields.io/badge/Framework-LangGraph-orange?style=for-the-badge&logo=langgraph" alt="Framework">
+  <img src="https://img.shields.io/badge/License-Apache_2.0-green?style=for-the-badge" alt="License">
+  <img src="https://img.shields.io/badge/Status-Research--Grade-blueviolet?style=for-the-badge" alt="Status">
+</p>
 
-TradingAgents is an advanced, AI-powered multi-agent financial research and portfolio assessment framework. Built on LangGraph, it orchestrates a team of specialized, domain-expert LLM personas to forensically analyze portfolios, debate investment theses, and generate institutional-grade quantitative risk matrices.
+---
 
-The system is for research and education. It is not personalized financial advice, automated portfolio management, or an instruction to trade.
+# TradingAgents: Research-Grade Financial Intelligence
 
-## Key Features
+**TradingAgents** is a state-of-the-art, multi-agent financial research framework designed to deliver forensic-level portfolio analysis and institutional-grade investment intelligence. By orchestrating a team of specialized AI personas, it transcends simple LLM prompts to simulate a full-scale research department.
 
-- **Domain-Expert AI Agents:** Gone are generic LLM prompts. Each agent embodies a highly specific persona (e.g., CFA Equity Researcher, Behavioral Finance Specialist, Chief Risk Officer, Macro Economist) restricted to its domain expertise.
-- **5-Layer Architecture:**
-  1. Data Gathering (FMP, Finnhub, YFinance, AlphaVantage, NewsAPI, Tavily)
-  2. Expert Analysis (Market, Social, News, Macro, Fundamentals)
-  3. Adversarial Debate (Bull vs. Bear Researchers)
-  4. Trading & Risk Assessment (Trader Agent & CRO Risk Matrix)
-  5. Executive Synthesis (CIO Portfolio Manager)
-- **Quantitative Rigor:** Includes 10-dimension risk scoring, conviction metrics (1-100), DuPont decomposition, and information asymmetry detection.
-- **Deep-Think Capabilities:** Fully integrated with deep-reasoning models like DeepSeek-v4-pro (via NVIDIA API) for multi-step logical synthesis.
-- **Real-Time Web Dashboard:** A responsive, glassmorphism UI for visualizing agent interactions and reading comprehensive markdown reports.
+Built on **LangGraph**, the platform implements an adversarial research pipeline where domain-expert agents debate market theses, identify hidden fragilities, and synthesize quantitative risk matrices.
 
-## Agent Architecture
+> [!IMPORTANT]
+> **Financial Disclaimer:** This system is for research and educational purposes only. It does not provide personalized financial advice, automated portfolio management, or trade execution instructions.
 
-### The Analyst Team
-- **Market Quant Analyst**: Analyzes price action, volume profiles, technical indicators, and momentum cross-holdings.
-- **Social Behavioral Analyst**: Detects retail sentiment, FOMO/capitulation cycles, crowd psychology, and contrarian signals.
-- **News Intelligence Analyst**: Tiers materiality of global news, tracks insider transactions, and builds upcoming catalyst calendars.
-- **Macro Economist**: *(NEW)* Classifies macroeconomic regimes, interprets central bank policy, and assesses geopolitical risk.
-- **Fundamentals Analyst**: CFA-level forensics evaluating DuPont decomposition, FCF quality, accrual ratios, and balance sheet strength.
+---
 
-### The Research & Debate Team
-- **Bull Researcher**: Formulates the positive thesis, scoring conviction across structured evidence pillars.
-- **Bear Researcher**: Acts as a forensic risk detective, conducting pre-mortem analysis and identifying hidden fragilities.
-- **Head of Research**: Adjudicates the debate, weighting evidence and synthesizing an objective conclusion.
+## 🚀 Key Features
 
-### Trading & Risk Management
-- **Trader Agent**: *(NEW)* Translates research into actionable strategy. Provides a conviction score (1-100), risk/reward alignment, and strict tactical monitoring triggers.
-- **Chief Risk Officer**: Generates a 10-dimension quantitative risk matrix, stress-testing the portfolio against black-swan scenarios and evaluating user-profile alignment.
-- **CIO Portfolio Manager**: Synthesizes all inputs into an executive summary, assigning a final portfolio grade (A+ to F).
+- **Adversarial Debate Engine:** Features specialized **Bull** and **Bear** researchers who conduct rigorous "Pre-Mortem" analyses to identify blind spots in investment theses.
+- **5-Layer Cognitive Architecture:**
+  1. **Omnichannel Data Ingestion:** Real-time data from FMP, Finnhub, YFinance, AlphaVantage, NewsAPI, and Tavily.
+  2. **Expert Domain Forensics:** specialized analysts for Market, News, Social Sentiment, Macroeconomics, and Fundamentals.
+  3. **Adversarial Synthesis:** Peer-reviewed debate adjudicated by a Head of Research.
+  4. **Tactical Risk Modeling:** 10-dimension quantitative risk matrix and black-swan stress testing.
+  5. **Executive Unitization:** Final synthesis into a graded Portfolio Feedback report (A+ to F).
+- **Structured Output (v0.2.4+):** Native Pydantic validation across all decision agents (Trader, PM, Research Manager) for deterministic, machine-readable intelligence.
+- **Deep-Think Integration:** Optimized for deep-reasoning models including **DeepSeek-V3/R1**, **GPT-4o**, and **Claude 3.5 Sonnet**.
+- **Persistence & Recovery:** Built-in LangGraph checkpointing for long-running research sessions and a persistent decision log for multi-session memory.
 
-## Agent Flow Pipeline
+---
 
-```text
-START
- -> Market Analyst | Social Analyst | News Analyst | Macro Economist | Fundamentals Analyst
- -> Bull Researcher <-> Bear Researcher
- -> Research Manager
- -> Trader Agent
- -> Risk Analyst
- -> Portfolio Manager
- -> END
+## 🧠 Agent Ecosystem
+
+| Persona | Domain Expertise | Primary Output |
+| :--- | :--- | :--- |
+| **Market Analyst** | Technicals, Volume Profiles, Price Action | Momentum & Trend Report |
+| **Fundamentals Analyst** | DuPont Decomposition, FCF Quality, Accruals | Financial Health Audit |
+| **Social Analyst** | Retail Sentiment, Capitulation Cycles | Behavioral Risk Assessment |
+| **Macro Economist** | Geopolitical Risk, Interest Rate Regimes | Macro Alignment Report |
+| **Risk Analyst (CRO)** | Black-Swan Stress Testing, Correlation | 10D Risk Matrix |
+| **Trader Agent** | Tactical Entry/Exit, Conviction Scoring | Execution Strategy |
+
+---
+
+## 📊 System Architecture
+
+```mermaid
+graph TD
+    Start((Start)) --> Data[Data Gathering Brain]
+    Data --> Analysts{Specialized Analysts}
+    
+    subgraph Analysis Layer
+        Analysts --> Market[Market Quant]
+        Analysts --> Fund[Fundamentals]
+        Analysts --> Social[Social Behavioral]
+        Analysts --> Macro[Macro Economist]
+    end
+    
+    Market & Fund & Social & Macro --> Debate{Research Debate}
+    
+    subgraph Synthesis Layer
+        Debate --> Bull[Bull Thesis]
+        Debate --> Bear[Bear Antithesis]
+        Bull & Bear --> Head[Head of Research]
+    end
+    
+    Head --> Trader[Trader Agent]
+    Trader --> Risk[Chief Risk Officer]
+    Risk --> PM[Portfolio Manager]
+    PM --> End((Final Report))
 ```
 
-## Installation
+---
+
+## 🛠️ Quick Start
+
+### 1. Installation
 
 ```bash
+# Clone the repository
 git clone https://github.com/TauricResearch/TradingAgents.git
 cd TradingAgents
+
+# Install as editable package
 pip install -e .
 ```
 
-Set your required API keys in a `.env` file (or export them):
+### 2. Configuration
+
+Create a `.env` file in the root directory. TradingAgents supports multiple providers; you only need keys for the ones you plan to use.
 
 ```bash
-# LLM Providers
-DEEPSEEK_API_KEY=...
-NVIDIA_API_KEY=...
+# LLM Providers (Minimum 1 Required)
+DEEPSEEK_API_KEY=your_key
+NVIDIA_API_KEY=your_key
+ANTHROPIC_API_KEY=your_key
+OPENAI_API_KEY=your_key
 
-# Financial Data Vendors
-ALPHA_VANTAGE_API_KEY=...
-FINANCIAL_MODELING_PREP_API_KEY=...
-FINNHUB_API_KEY=...
-TWELVE_DATA_API_KEY=...
-EODHD_API_KEY=...
-
-# News & Web Search
-NEWSAPI_API_KEY=...
-NEWSDATA_API_KEY=...
-THENEWSAPI_API_TOKEN=...
-TAVILY_API_KEY=...
+# Data Vendors (Optional, falls back to yfinance)
+FINANCIAL_MODELING_PREP_API_KEY=your_key
+ALPHA_VANTAGE_API_KEY=your_key
+FINNHUB_API_KEY=your_key
+TAVILY_API_KEY=your_key
 ```
 
-*Note: The platform falls back to `yfinance` natively, but the `FinancialKnowledgeBrain` and `NewsKnowledgeBrain` are configured to utilize premium vendors for advanced data.*
+### 3. Usage
 
-## Web UI Dashboard
+#### **CLI Mode**
+Run a full forensic analysis from your terminal:
+```bash
+tradingagents --ticker AAPL --weight 0.5 --ticker MSFT --weight 0.5
+```
 
-We built a FastAPI backend with a sleek frontend to interact with the agents. To launch the server:
-
+#### **Web Dashboard**
+Launch the FastAPI backend and glassmorphism UI:
 ```bash
 uvicorn api:app --reload
 ```
-Navigate to `http://127.0.0.1:8000/` to use the interactive application.
+Visit `http://localhost:8000` for the interactive experience.
 
-## Python Usage
-
-You can also run the graph directly in Python:
-
+#### **Python Integration**
 ```python
 from tradingagents.graph.trading_graph import TradingAgentsGraph
 from tradingagents.default_config import DEFAULT_CONFIG
 
-portfolio = [
-    {"ticker": "AAPL", "weight": 0.25, "shares": 10, "cost_basis": 150},
-    {"ticker": "MSFT", "weight": 0.20, "shares": 5, "cost_basis": 300},
-]
+# Define your portfolio
+portfolio = [{"ticker": "NVDA", "weight": 1.0}]
 
-user_profile = {
-    "risk_tolerance": "moderate",
-    "time_horizon": "3-5 years",
-    "goals": "long-term growth",
-    "constraints": "avoid high volatility",
-}
+# Initialize and Run
+ta = TradingAgentsGraph(config=DEFAULT_CONFIG)
+state, feedback = ta.analyze_portfolio(portfolio, "2024-05-10")
 
-ta = TradingAgentsGraph(debug=True, config=DEFAULT_CONFIG.copy())
-final_state, portfolio_feedback = ta.analyze_portfolio(
-    portfolio,
-    "2026-05-01",
-    user_profile=user_profile,
-)
-
-print(portfolio_feedback)
-# Access specialized reports via final_state['macro_report'], final_state['trader_report'], etc.
+print(feedback)
 ```
 
-## Persistence And Recovery
+---
 
-Each completed run appends portfolio feedback to `~/.tradingagents/memory/portfolio_memory.md`. Future runs inject this historical feedback context directly into the agent prompts. Checkpoint resume is available via the `--checkpoint` flag in the CLI to recover crashed runs.
+## 🐳 Docker Deployment
 
-## Citation
+Deploy the research platform in a containerized environment:
 
-```text
+```bash
+# Build the image
+docker build -t trading-agents .
+
+# Run the container
+docker run -p 8000:8000 --env-file .env trading-agents
+```
+
+---
+
+## 📜 Citation
+
+If you use this framework in your research, please cite our work:
+
+```bibtex
 @misc{xiao2025tradingagentsmultiagentsllmfinancial,
       title={TradingAgents: Multi-Agents LLM Financial Trading Framework},
       author={Yijia Xiao and Edward Sun and Di Luo and Wei Wang},
@@ -141,3 +172,6 @@ Each completed run appends portfolio feedback to `~/.tradingagents/memory/portfo
       url={https://arxiv.org/abs/2412.20138},
 }
 ```
+
+---
+<p align="center">Developed with ❤️ by <a href="https://github.com/TauricResearch">Tauric Research</a></p>

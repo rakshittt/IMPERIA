@@ -217,3 +217,12 @@ __marimo__/
 
 # Cache
 **/data_cache/
+
+# Jetro and Editor configs
+.jetro/canvases/**/*.history/
+.jetro/notes/
+.jetro/context.json
+.jetro/trouble.json
+.jetro/live-server.json
+.cursor/
+.mcp.json
