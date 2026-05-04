@@ -157,6 +157,31 @@ docker run -p 8000:8000 --env-file .env trading-agents
 
 ---
 
+## Free US Finance Backend
+
+The backend now has a fast-query tier alongside the existing deep multi-agent research graph.
+
+- Fast mode answers quote, ratio, news, SEC filing, earnings, holder, chart, search, and market-summary questions from free sources.
+- Deep mode preserves the TradingAgents bull/bear research, risk synthesis, trader, and portfolio manager workflow.
+- Supported universe is US-listed equities and major US ETFs only. Crypto, forex, OTC, international equities, and detectable ADR/ADS listings are out of scope.
+- SEC EDGAR is used for official submissions and XBRL company facts. Set `SEC_USER_AGENT` in production.
+- Already-configured Alpha Vantage, Finnhub, and FMP keys may be used as optional free-tier fallbacks; keys are loaded from `.env` and are never hardcoded.
+
+Common backend routes:
+
+```bash
+curl "http://localhost:8000/api/search?q=Apple"
+curl "http://localhost:8000/api/stock/AAPL/ratios"
+curl "http://localhost:8000/api/market/summary"
+curl -X POST "http://localhost:8000/api/ask" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"What is Apple P/E ratio?"}'
+```
+
+Detailed backend notes live in `docs/backend_free_us_finance.md`.
+
+---
+
 ## 📜 Citation
 
 If you use this framework in your research, please cite our work:

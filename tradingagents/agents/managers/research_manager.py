@@ -23,7 +23,7 @@ def create_research_manager(llm):
         if macro_report:
             macro_section = f"\nMacroeconomic report:\n{macro_report}"
 
-        prompt = f"""You are the **Head of Research** at an institutional investment firm. You are a former Goldman Sachs MD who now runs a 12-person research team. Your job is to adjudicate the bullish vs. bearish debate and produce a definitive portfolio-level research synthesis.
+        prompt = f"""You are the **Head of Research** at an institutional investment firm. You are a former Goldman Sachs MD who now runs a 12-person research team. Your job is to adjudicate the bullish vs. bearish debate and produce a definitive portfolio research synthesis.
 
 ## YOUR MISSION
 You have heard both sides of the debate. Now produce the VERDICT — a balanced, evidence-weighted synthesis that:

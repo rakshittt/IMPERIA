@@ -6,6 +6,16 @@ DEFAULT_CONFIG = {
     "project_dir": os.path.abspath(os.path.join(os.path.dirname(__file__), ".")),
     "results_dir": os.getenv("TRADINGAGENTS_RESULTS_DIR", os.path.join(_TRADINGAGENTS_HOME, "logs")),
     "data_cache_dir": os.getenv("TRADINGAGENTS_CACHE_DIR", os.path.join(_TRADINGAGENTS_HOME, "cache")),
+    "sqlite_cache_path": os.getenv(
+        "TRADINGAGENTS_SQLITE_CACHE",
+        os.path.join(_TRADINGAGENTS_HOME, "cache", "backend_cache.sqlite3"),
+    ),
+    "sec_user_agent": os.getenv(
+        "SEC_USER_AGENT",
+        "TradingAgents/0.2.4 contact=dev@example.com",
+    ),
+    "fast_query_enabled": True,
+    "api_rate_limit_per_minute": int(os.getenv("TRADINGAGENTS_API_RATE_LIMIT", "120")),
     "memory_log_path": os.getenv("TRADINGAGENTS_MEMORY_LOG_PATH", os.path.join(_TRADINGAGENTS_HOME, "memory", "portfolio_memory.md")),
     # Optional cap on the number of portfolio feedback memory entries. None
     # disables rotation entirely.
