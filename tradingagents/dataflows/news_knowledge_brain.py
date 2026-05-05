@@ -1,95 +1,86 @@
-import os
-import requests
-from typing import Dict, Any, Optional
+"""Optional news and web-search vendor aggregation for deep context."""
 
-def get_newsapi_news(query: str, **kwargs) -> Optional[Dict[str, Any]]:
-    """Fetch data from NewsAPI."""
+from __future__ import annotations
+
+import os
+from typing import Any
+
+from tradingagents.utils.http import safe_get_json, safe_post_json
+
+
+def get_newsapi_news(query: str, **kwargs: Any) -> dict[str, Any] | None:
+    """Fetch NewsAPI results when an existing free-tier key is present."""
+
     api_key = os.getenv("NEWSAPI_API_KEY")
     if not api_key:
         return None
-    url = "https://newsapi.org/v2/everything"
-    params = {"q": query, "apiKey": api_key, **kwargs}
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Error fetching from NewsAPI: {e}")
-        return None
+    data = safe_get_json(
+        "https://newsapi.org/v2/everything",
+        params={"q": query, "apiKey": api_key, **kwargs},
+        source="newsapi",
+    )
+    return data if isinstance(data, dict) else None
 
-def get_newsdata_news(query: str, **kwargs) -> Optional[Dict[str, Any]]:
-    """Fetch data from NewsData.io."""
+
+def get_newsdata_news(query: str, **kwargs: Any) -> dict[str, Any] | None:
+    """Fetch NewsData.io results when an existing free-tier key is present."""
+
     api_key = os.getenv("NEWSDATA_API_KEY")
     if not api_key:
         return None
-    url = "https://newsdata.io/api/1/news"
-    params = {"q": query, "apikey": api_key, **kwargs}
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Error fetching from NewsData: {e}")
-        return None
+    data = safe_get_json(
+        "https://newsdata.io/api/1/news",
+        params={"q": query, "apikey": api_key, **kwargs},
+        source="newsdata",
+    )
+    return data if isinstance(data, dict) else None
 
-def get_thenewsapi_news(query: str, **kwargs) -> Optional[Dict[str, Any]]:
-    """Fetch data from TheNewsAPI."""
-    api_key = os.getenv("THENEWSAPI_API_TOKEN")
+
+def get_thenewsapi_news(query: str, **kwargs: Any) -> dict[str, Any] | None:
+    """Fetch TheNewsAPI results when an existing free-tier key is present."""
+
+    api_key = os.getenv("THENEWSAPI_COM_API_TOKEN") or os.getenv("THENEWSAPI_API_TOKEN")
     if not api_key:
         return None
-    url = "https://api.thenewsapi.com/v1/news/all"
-    params = {"search": query, "api_token": api_key, **kwargs}
-    try:
-        response = requests.get(url, params=params)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Error fetching from TheNewsAPI: {e}")
-        return None
+    data = safe_get_json(
+        "https://api.thenewsapi.com/v1/news/all",
+        params={"search": query, "api_token": api_key, **kwargs},
+        source="thenewsapi",
+    )
+    return data if isinstance(data, dict) else None
 
-def search_tavily(query: str, **kwargs) -> Optional[Dict[str, Any]]:
-    """Fetch data from Tavily Search API."""
+
+def search_tavily(query: str, **kwargs: Any) -> dict[str, Any] | None:
+    """Fetch Tavily web search context when an existing free-tier key is present."""
+
     api_key = os.getenv("TAVILY_API_KEY")
     if not api_key:
         return None
-    url = "https://api.tavily.com/search"
-    headers = {"Content-Type": "application/json"}
-    payload = {"api_key": api_key, "query": query, "search_depth": "advanced", **kwargs}
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        response.raise_for_status()
-        return response.json()
-    except Exception as e:
-        print(f"Error fetching from Tavily: {e}")
-        return None
+    data = safe_post_json(
+        "https://api.tavily.com/search",
+        headers={"Content-Type": "application/json"},
+        json_payload={"api_key": api_key, "query": query, "search_depth": "advanced", **kwargs},
+        source="tavily",
+    )
+    return data if isinstance(data, dict) else None
+
 
 class NewsKnowledgeBrain:
-    """Aggregates multiple news data vendors and web search APIs."""
-    
+    """Aggregates optional news and web-search vendors for deep research."""
+
     @staticmethod
-    def get_company_news(symbol: str) -> Optional[Dict[str, Any]]:
-        # Try NewsAPI first
-        data = get_newsapi_news(symbol)
-        if data and data.get('totalResults', 0) > 0:
-            return {"source": "NewsAPI", "data": data}
-        
-        # Fallback to NewsData
-        data = get_newsdata_news(symbol)
-        if data and data.get('totalResults', 0) > 0:
-            return {"source": "NewsData", "data": data}
-            
-        # Fallback to TheNewsAPI
-        data = get_thenewsapi_news(symbol)
-        if data and data.get('meta', {}).get('found', 0) > 0:
-            return {"source": "TheNewsAPI", "data": data}
-            
+    def get_company_news(symbol: str) -> dict[str, Any] | None:
+        for source, fetcher in (
+            ("NewsAPI", get_newsapi_news),
+            ("NewsData", get_newsdata_news),
+            ("TheNewsAPI", get_thenewsapi_news),
+        ):
+            data = fetcher(symbol)
+            if data:
+                return {"source": source, "data": data}
         return None
 
     @staticmethod
-    def web_search(query: str) -> Optional[Dict[str, Any]]:
-        # Primary search provider
+    def web_search(query: str) -> dict[str, Any] | None:
         data = search_tavily(query)
-        if data:
-            return {"source": "Tavily", "data": data}
-            
-        return None
+        return {"source": "Tavily", "data": data} if data else None

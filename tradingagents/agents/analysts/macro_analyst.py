@@ -1,10 +1,29 @@
-"""Macro Economist: dedicated macroeconomic and geopolitical analysis agent."""
+"""Macro economist and sector-context specialist agents."""
+
+from __future__ import annotations
+
+import logging
+import time
+from typing import Any
 
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from pydantic import BaseModel, Field
 from tradingagents.agents.utils.agent_utils import (
     get_global_news,
     get_language_instruction,
 )
+from tradingagents.dataflows.market_data import get_market_breadth, get_market_indices, get_sector_performance
+
+logger = logging.getLogger(__name__)
+
+
+class MacroContextReport(BaseModel):
+    """Structured macro and sector context for deep research debate."""
+
+    summary: str
+    sector_rank: list[dict[str, Any]] = Field(default_factory=list)
+    macro_signal: str = "neutral"
+    warnings: list[str] = Field(default_factory=list)
 
 
 def create_macro_analyst(llm):
@@ -149,3 +168,49 @@ CRITICAL RULES:
         }
 
     return macro_analyst_node
+
+
+def create_macro_context_agent(llm):
+    """Create an additive specialist node for market breadth and sector regime."""
+
+    def macro_context_node(state: dict[str, Any]) -> dict[str, Any]:
+        started = time.perf_counter()
+        warnings: list[str] = []
+        try:
+            breadth = get_market_breadth().model_dump()
+        except Exception as exc:
+            breadth = {}
+            warnings.append(f"Market breadth unavailable ({type(exc).__name__}).")
+        try:
+            indices = [item.model_dump() for item in get_market_indices()]
+        except Exception as exc:
+            indices = []
+            warnings.append(f"Market indices unavailable ({type(exc).__name__}).")
+        try:
+            sectors = [item.model_dump() for item in get_sector_performance()]
+        except Exception as exc:
+            sectors = []
+            warnings.append(f"Sector performance unavailable ({type(exc).__name__}).")
+
+        ranked = sorted(sectors, key=lambda item: item.get("change_pct") or 0, reverse=True)
+        adv = breadth.get("advancing", 0)
+        dec = breadth.get("declining", 0)
+        signal = "risk_on" if adv > dec else "risk_off" if dec > adv else "neutral"
+        summary = f"Macro/sector signal is {signal}; breadth advancing={adv}, declining={dec}."
+        report = MacroContextReport(summary=summary, sector_rank=ranked, macro_signal=signal, warnings=warnings)
+        prompt = (
+            "You are a macro and sector context analyst for US equities. Use only this data. "
+            "Summarize whether the market and sector backdrop is a headwind or tailwind for the portfolio.\n"
+            f"Portfolio context:\n{state.get('portfolio_context','')}\n\n"
+            f"Indices: {indices}\nBreadth: {breadth}\nSectors: {ranked}"
+        )
+        try:
+            response = llm.invoke(prompt)
+            if getattr(response, "content", None):
+                report.summary = response.content
+        except Exception as exc:
+            report.warnings.append(f"DeepSeek macro synthesis unavailable ({type(exc).__name__}).")
+        logger.info("agent_completed agent_name=Macro Context Agent duration_ms=%d data_points_used=%d", int((time.perf_counter() - started) * 1000), len(indices) + len(sectors))
+        return {"macro_context_report": report.model_dump()}
+
+    return macro_context_node

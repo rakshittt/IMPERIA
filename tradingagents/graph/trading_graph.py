@@ -78,6 +78,7 @@ class TradingAgentsGraph:
 
         self.memory_log = TradingMemoryLog(self.config)
         self.tool_nodes = self._create_tool_nodes()
+        self.specialist_agents = ["SEC Filings Analyst", "Macro Context Agent", "Earnings Analyst"]
 
         self.conditional_logic = ConditionalLogic(
             max_debate_rounds=self.config["max_debate_rounds"],
@@ -240,6 +241,9 @@ class TradingAgentsGraph:
             "news_report": final_state["news_report"],
             "fundamentals_report": final_state["fundamentals_report"],
             "macro_report": final_state.get("macro_report", ""),
+            "sec_filings_report": final_state.get("sec_filings_report", {}),
+            "earnings_report": final_state.get("earnings_report", {}),
+            "macro_context_report": final_state.get("macro_context_report", {}),
             "research_debate_state": final_state["research_debate_state"],
             "bullish_research": final_state["bullish_research"],
             "bearish_research": final_state["bearish_research"],

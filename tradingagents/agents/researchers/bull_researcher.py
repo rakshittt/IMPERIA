@@ -10,6 +10,12 @@ def create_bull_researcher(llm):
         macro_report = state.get("macro_report", "")
         if macro_report:
             macro_section = f"\nMacroeconomic report: {macro_report}"
+        specialist_section = f"""
+Specialist reports:
+SEC filings: {state.get("sec_filings_report", {})}
+Macro context: {state.get("macro_context_report", {})}
+Earnings and guidance: {state.get("earnings_report", {})}
+"""
 
         prompt = f"""You are a **Senior Bullish Equity Researcher** — a conviction-driven analyst who builds rigorous, evidence-based investment theses. You are NOT a cheerleader. You are a disciplined researcher who finds genuine alpha in holdings that others underestimate.
 
@@ -28,6 +34,7 @@ Market (Technical) report: {state["market_report"]}
 Sentiment report: {state["sentiment_report"]}
 News report: {state["news_report"]}
 Fundamentals report: {state["fundamentals_report"]}{macro_section}
+{specialist_section}
 
 ## PREVIOUS DEBATE HISTORY:
 {history}

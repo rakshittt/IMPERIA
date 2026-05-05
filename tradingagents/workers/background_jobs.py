@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import logging
+import time
 import uuid
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Any, Callable
@@ -16,6 +18,7 @@ from tradingagents.persistence.portfolio import (
 MAX_WORKERS = 3
 _EXECUTOR = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 _FUTURES: dict[str, Future] = {}
+logger = logging.getLogger(__name__)
 
 
 def submit_research_job(
@@ -27,6 +30,7 @@ def submit_research_job(
 ) -> dict[str, Any]:
     rid = research_id or str(uuid.uuid4())[:12]
     persist_research_result(rid, {"id": rid, "portfolio": portfolio, "date": analysis_date, "profile": profile or {}}, status="queued")
+    logger.info("research_job_status job_id=%s status=queued", rid)
     future = _EXECUTOR.submit(_run_job, rid, runner, portfolio, analysis_date, profile)
     _FUTURES[rid] = future
     return {"research_id": rid, "id": rid, "status": "queued"}
@@ -39,13 +43,26 @@ def _run_job(
     analysis_date: str | None,
     profile: dict[str, Any] | None,
 ) -> None:
+    started = time.perf_counter()
     try:
         update_research_status(research_id, "running")
+        logger.info("research_job_status job_id=%s status=running", research_id)
         result = runner(portfolio, analysis_date, profile or {}, research_id)
         result["id"] = research_id
         update_research_status(research_id, "completed", result_json=result)
+        logger.info(
+            "research_job_status job_id=%s status=completed duration_ms=%d",
+            research_id,
+            int((time.perf_counter() - started) * 1000),
+        )
     except Exception as exc:
         update_research_status(research_id, "failed", error=str(exc))
+        logger.warning(
+            "research_job_status job_id=%s status=failed duration_ms=%d error=%s",
+            research_id,
+            int((time.perf_counter() - started) * 1000),
+            type(exc).__name__,
+        )
 
 
 def get_research_job(research_id: str) -> dict[str, Any] | None:

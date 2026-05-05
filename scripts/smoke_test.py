@@ -7,11 +7,15 @@ not intended for CI.
 from __future__ import annotations
 
 import time
+import logging
 
 from tradingagents.dataflows.market_data import get_market_indices, get_market_movers, get_quote
 from tradingagents.dataflows.sec_edgar import get_cik_for_ticker
 from tradingagents.dataflows.screener import parse_nl_screener_query, screen_stocks
 from tradingagents.engine.fast_query import FastQueryEngine
+
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
 
 
 def _check(name: str, func) -> None:
@@ -19,10 +23,10 @@ def _check(name: str, func) -> None:
     try:
         result = func()
         elapsed = time.perf_counter() - start
-        print(f"{'PASS' if result else 'FAIL'} {name} ({elapsed:.2f}s)")
+        logger.info("%s %s (%.2fs)", "PASS" if result else "FAIL", name, elapsed)
     except Exception as exc:
         elapsed = time.perf_counter() - start
-        print(f"FAIL {name} ({elapsed:.2f}s): {exc}")
+        logger.info("FAIL %s (%.2fs): %s", name, elapsed, exc)
 
 
 def run() -> None:

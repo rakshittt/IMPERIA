@@ -4,11 +4,10 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from typing import Any
 
-import requests
 from pydantic import BaseModel, Field
+from tradingagents.utils.deepseek import deepseek_text
 
 logger = logging.getLogger(__name__)
 
@@ -92,9 +91,6 @@ def _fallback_answer(query: str, bundle: dict[str, Any], warnings: list[str] | N
 
 
 def synthesize_fast_answer(query: str, data_bundle: dict[str, Any]) -> SynthesizedAnswer:
-    api_key = os.getenv("DEEPSEEK_API_KEY")
-    if not api_key:
-        return _fallback_answer(query, data_bundle, ["DEEPSEEK_API_KEY not configured; used deterministic answer."])
     formatted = json.dumps(_compact(data_bundle), default=str, indent=2)[:12000]
     system = (
         "You are a financial intelligence assistant answering a question about US stocks. "
@@ -102,23 +98,16 @@ def synthesize_fast_answer(query: str, data_bundle: dict[str, Any]) -> Synthesiz
     )
     user = f"Question: {query}\n\nData:\n{formatted}\n\nAnswer concisely in 2-4 sentences."
     try:
-        response = requests.post(
-            "https://api.deepseek.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={
-                "model": "deepseek-chat",
-                "temperature": 0.3,
-                "max_tokens": 800,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-            },
+        text = deepseek_text(
+            [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            mode="fast",
+            temperature=0.3,
+            max_tokens=800,
             timeout=15,
         )
-        response.raise_for_status()
-        payload = response.json()
-        text = payload["choices"][0]["message"]["content"].strip()
         if not text:
             raise ValueError("DeepSeek returned an empty answer")
         return SynthesizedAnswer(

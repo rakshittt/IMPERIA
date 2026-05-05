@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 import re
 import time
 import xml.etree.ElementTree as ET
@@ -92,10 +93,10 @@ def _request_json(
     if cached is not None:
         return cached
 
-    timeout = float(os.getenv("SEC_REQUEST_TIMEOUT", "10"))
+    timeout = (5, int(os.getenv("SEC_REQUEST_READ_TIMEOUT", "15")))
     retries = int(os.getenv("SEC_REQUEST_RETRIES", "3"))
     last_error: Exception | None = None
-    for attempt in range(retries + 1):
+    for attempt in range(retries):
         try:
             _respect_rate_limit()
             headers = _archive_headers() if "www.sec.gov" in url else _headers()
@@ -114,8 +115,8 @@ def _request_json(
             return payload
         except Exception as exc:
             last_error = exc
-            if attempt < retries:
-                time.sleep(0.5 * (2**attempt))
+            if attempt < retries - 1:
+                time.sleep(0.5 * (2**attempt) + random.uniform(0, 0.15))
 
     stale = backend_cache.get_stale(namespace, key)
     if stale is not None:
@@ -125,10 +126,10 @@ def _request_json(
 
 
 def _request_text(url: str) -> str:
-    timeout = float(os.getenv("SEC_REQUEST_TIMEOUT", "10"))
-    retries = int(os.getenv("SEC_REQUEST_RETRIES", "2"))
+    timeout = (5, int(os.getenv("SEC_REQUEST_READ_TIMEOUT", "15")))
+    retries = int(os.getenv("SEC_REQUEST_RETRIES", "3"))
     last_error: Exception | None = None
-    for attempt in range(retries + 1):
+    for attempt in range(retries):
         try:
             _respect_rate_limit()
             response = requests.get(url, headers=_archive_headers(), timeout=timeout)
@@ -138,8 +139,8 @@ def _request_text(url: str) -> str:
             return response.text
         except Exception as exc:
             last_error = exc
-            if attempt < retries:
-                time.sleep(0.5 * (2**attempt))
+            if attempt < retries - 1:
+                time.sleep(0.5 * (2**attempt) + random.uniform(0, 0.15))
     raise SECError(f"SEC text request failed for {url}: {last_error}") from last_error
 
 

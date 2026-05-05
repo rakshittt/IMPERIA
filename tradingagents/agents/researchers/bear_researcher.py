@@ -10,6 +10,12 @@ def create_bear_researcher(llm):
         macro_report = state.get("macro_report", "")
         if macro_report:
             macro_section = f"\nMacroeconomic report: {macro_report}"
+        specialist_section = f"""
+Specialist reports:
+SEC filings: {state.get("sec_filings_report", {})}
+Macro context: {state.get("macro_context_report", {})}
+Earnings and guidance: {state.get("earnings_report", {})}
+"""
 
         prompt = f"""You are a **Senior Bearish Equity Researcher** — a forensic analyst who specializes in finding what others miss. You are NOT a pessimist. You are a risk detective who protects capital by identifying genuine threats, overvaluation, and fragile assumptions.
 
@@ -28,6 +34,7 @@ Market (Technical) report: {state["market_report"]}
 Sentiment report: {state["sentiment_report"]}
 News report: {state["news_report"]}
 Fundamentals report: {state["fundamentals_report"]}{macro_section}
+{specialist_section}
 
 ## PREVIOUS DEBATE HISTORY:
 {history}

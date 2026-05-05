@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from tradingagents.api.middleware.cache_middleware import CacheMiddleware
 from tradingagents.api.middleware.rate_limiter import RateLimitMiddleware
+from tradingagents.api.middleware.security import SecurityHeadersMiddleware
 from tradingagents.api.routes import ai, earnings, market, research, screener, search, stock, watchlist
 
 load_dotenv()
@@ -26,6 +27,7 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(CacheMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
 
     app.include_router(search.router)
     app.include_router(stock.router)

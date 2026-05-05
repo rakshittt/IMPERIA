@@ -44,6 +44,8 @@ async def stream_research_status(research_id: str):
             job = get_research_job(research_id)
             if job and job.get("status") in {"completed", "failed"}:
                 break
+            if job is None:
+                break
             await asyncio.sleep(1)
 
     return EventSourceResponse(event_generator())

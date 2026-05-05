@@ -73,12 +73,12 @@ class PersistenceDB:
 
     def fetchone(self, sql: str, params: tuple[Any, ...] = ()) -> sqlite3.Row | None:
         self.initialize()
-        with self.connect() as conn:
+        with self._lock, self.connect() as conn:
             return conn.execute(sql, params).fetchone()
 
     def fetchall(self, sql: str, params: tuple[Any, ...] = ()) -> list[sqlite3.Row]:
         self.initialize()
-        with self.connect() as conn:
+        with self._lock, self.connect() as conn:
             return list(conn.execute(sql, params).fetchall())
 
 

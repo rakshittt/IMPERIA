@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import random
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,6 +18,7 @@ from tradingagents.dataflows.free_provider_fallbacks import (
     get_alpha_vantage_quote,
     get_finnhub_quote,
 )
+from tradingagents.utils.validation import normalize_ticker
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +54,13 @@ SECTOR_ETFS = {
 
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _normalize_market_symbol(ticker: str) -> str:
+    symbol = ticker.strip().upper()
+    if symbol.startswith("^"):
+        return symbol
+    return normalize_ticker(symbol)
 
 
 class QuoteData(BaseModel):
@@ -122,7 +131,7 @@ def _retry(callable_obj, attempts: int = 3, base_delay: float = 0.5):
         except Exception as exc:
             last_error = exc
             if attempt < attempts - 1:
-                time.sleep(base_delay * (2**attempt))
+                time.sleep(base_delay * (2**attempt) + random.uniform(0, 0.15))
     raise last_error
 
 
@@ -143,7 +152,7 @@ def _quote_from_fallback(ticker: str, fallback: dict[str, Any]) -> QuoteData:
 def _quote_from_yfinance(ticker: str) -> QuoteData:
     import yfinance as yf
 
-    symbol = ticker.upper().strip()
+    symbol = _normalize_market_symbol(ticker)
     stock = yf.Ticker(symbol)
     fast_info = getattr(stock, "fast_info", None)
     info: dict[str, Any] = {}
@@ -186,14 +195,16 @@ def _quote_from_yfinance(ticker: str) -> QuoteData:
 def get_quote(ticker: str) -> QuoteData:
     """Return a cache-first quote with yfinance/Finnhub/Alpha Vantage fallbacks."""
 
-    symbol = ticker.upper().strip()
+    symbol = _normalize_market_symbol(ticker)
     cache = get_default_cache()
     cached = cache.get("quotes", symbol)
     if cached is not None:
+        logger.info("market_quote ticker=%s source=cache cache_hit=true", symbol)
         return QuoteData.model_validate(cached)
 
     warnings: list[str] = []
     try:
+        logger.info("market_quote ticker=%s source=yfinance cache_hit=false", symbol)
         quote = _retry(lambda: _quote_from_yfinance(symbol))
         if quote.price is not None:
             cache.set("quotes", symbol, quote.model_dump(), ttl_seconds=QUOTE_TTL)
@@ -245,8 +256,7 @@ def _quote_from_history(symbol: str, frame: pd.DataFrame) -> QuoteData:
     )
 
 
-def get_batch_quotes(tickers: list[str]) -> dict[str, QuoteData]:
-    symbols = [ticker.upper().strip() for ticker in tickers if ticker.strip()][:MAX_BATCH_QUOTES]
+def _get_batch_quotes_chunk(symbols: list[str]) -> dict[str, QuoteData]:
     cache = get_default_cache()
     result: dict[str, QuoteData] = {}
     missing: list[str] = []
@@ -289,10 +299,28 @@ def get_batch_quotes(tickers: list[str]) -> dict[str, QuoteData]:
     return result
 
 
+def get_batch_quotes(tickers: list[str]) -> dict[str, QuoteData]:
+    """Return quotes for all tickers, splitting provider calls into 50-symbol chunks."""
+
+    symbols: list[str] = []
+    for ticker in tickers:
+        try:
+            symbol = _normalize_market_symbol(ticker)
+        except ValueError:
+            continue
+        if symbol not in symbols:
+            symbols.append(symbol)
+    result: dict[str, QuoteData] = {}
+    for start in range(0, len(symbols), MAX_BATCH_QUOTES):
+        result.update(_get_batch_quotes_chunk(symbols[start : start + MAX_BATCH_QUOTES]))
+    return result
+
+
 def get_ohlcv(ticker: str, period: str = "1y", interval: str = "1d") -> pd.DataFrame:
     import yfinance as yf
 
-    return _retry(lambda: yf.Ticker(ticker.upper().strip()).history(period=period, interval=interval))
+    symbol = _normalize_market_symbol(ticker)
+    return _retry(lambda: yf.Ticker(symbol).history(period=period, interval=interval))
 
 
 def get_intraday(ticker: str, interval: str = "5m") -> pd.DataFrame:

@@ -18,6 +18,20 @@ def test_get_cik_for_ticker_filters_supported_universe(monkeypatch):
 
 
 @pytest.mark.unit
+def test_get_cik_for_ticker_handles_dot_and_hyphen(monkeypatch):
+    monkeypatch.setattr(
+        sec_edgar,
+        "load_sec_ticker_universe",
+        lambda: [
+            {"ticker": "BRK-B", "name": "Berkshire Hathaway Inc.", "cik": 1067983, "exchange": "NYSE"},
+            {"ticker": "BF-B", "name": "Brown-Forman Corporation", "cik": 14693, "exchange": "NYSE"},
+        ],
+    )
+    assert sec_edgar.get_cik_for_ticker("brk.b") == "0001067983"
+    assert sec_edgar.get_cik_for_ticker("BF-B") == "0000014693"
+
+
+@pytest.mark.unit
 def test_get_sec_filings_filters_recent_forms(monkeypatch):
     monkeypatch.setattr(sec_edgar, "get_cik_for_ticker", lambda ticker: "0000320193")
     monkeypatch.setattr(
@@ -78,6 +92,31 @@ def test_get_xbrl_financials_normalizes_companyfacts(monkeypatch):
     assert data["cik"] == "0000320193"
     assert data["annual"]["revenue"]["value"] == 100
     assert data["quarterly"]["revenue"]["value"] == 30
+
+
+@pytest.mark.unit
+def test_get_xbrl_financials_missing_tags(monkeypatch):
+    monkeypatch.setattr(sec_edgar, "get_cik_for_ticker", lambda ticker: "0000320193")
+    monkeypatch.setattr(
+        sec_edgar,
+        "get_companyfacts",
+        lambda ticker: {"cik": 320193, "entityName": "Apple Inc.", "facts": {"us-gaap": {}}},
+    )
+    data = sec_edgar.get_xbrl_financials("AAPL")
+    assert data["annual"] == {}
+    assert data["quarterly"] == {}
+
+
+@pytest.mark.unit
+def test_form4_empty_xml_returns_empty_transactions(monkeypatch):
+    monkeypatch.setattr(
+        sec_edgar,
+        "get_sec_filings",
+        lambda ticker, filing_type=None, limit=50: [{"filing_type": "4", "url": "https://www.sec.gov/empty.xml"}],
+    )
+    monkeypatch.setattr(sec_edgar, "_request_text", lambda url: "")
+    trades = sec_edgar.get_form4_insider_trades("AAPL")
+    assert trades[0]["transactions"] == []
 
 
 @pytest.mark.unit

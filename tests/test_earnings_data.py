@@ -55,6 +55,13 @@ def test_calendar_yfinance_fallback_does_not_recurse(cache, monkeypatch):
 
 
 @pytest.mark.unit
+def test_next_earnings_handles_none_dates(cache, monkeypatch):
+    monkeypatch.setattr(earnings_data, "_finnhub_calendar", lambda start, end, tickers: [earnings_data.EarningsEvent(ticker="AAPL", report_date=None)])
+    monkeypatch.setattr(earnings_data, "_yfinance_next_earnings", lambda ticker: None)
+    assert earnings_data.get_next_earnings("AAPL") is None
+
+
+@pytest.mark.unit
 def test_surprise_stats(cache, monkeypatch):
     monkeypatch.setattr(
         earnings_data,
@@ -67,3 +74,11 @@ def test_surprise_stats(cache, monkeypatch):
     stats = earnings_data.get_earnings_surprise_stats("AAPL")
     assert stats.beat_rate == 0.5
     assert stats.average_surprise_pct == 2.5
+
+
+@pytest.mark.unit
+def test_surprise_stats_zero_history(cache, monkeypatch):
+    monkeypatch.setattr(earnings_data, "get_earnings_history", lambda ticker, limit=8: [])
+    stats = earnings_data.get_earnings_surprise_stats("AAPL")
+    assert stats.quarters == 0
+    assert stats.warnings

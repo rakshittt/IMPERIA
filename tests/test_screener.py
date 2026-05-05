@@ -26,14 +26,7 @@ def test_parse_nl_screener_query_deterministic(monkeypatch):
 def test_parse_nl_screener_query_deepseek_merge(monkeypatch):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "key")
 
-    class Response:
-        def raise_for_status(self):
-            return None
-
-        def json(self):
-            return {"choices": [{"message": {"content": "{\"max_pe\": 15, \"limit\": 5}"}}]}
-
-    monkeypatch.setattr(screener.requests, "post", lambda *args, **kwargs: Response())
+    monkeypatch.setattr(screener, "deepseek_text", lambda *args, **kwargs: "{\"max_pe\": 15, \"limit\": 5}")
     assert screener.parse_nl_screener_query("cheap stocks").max_pe == 15
 
 
@@ -62,6 +55,21 @@ def test_screen_stocks_respects_uncached_cap(cache, monkeypatch):
     monkeypatch.setattr(screener, "compute_financial_metrics", lambda ticker: {"metrics": {}, "warnings": []})
     screener.screen_stocks(screener.ScreenerCriteria())
     assert len(calls) == screener.MAX_UNCACHED_FETCHES
+
+
+@pytest.mark.unit
+def test_screen_stocks_partial_results_warning(cache, monkeypatch):
+    monkeypatch.setattr(screener, "load_universe", lambda: [f"T{i}" for i in range(55)])
+    monkeypatch.setattr(screener, "get_quote", lambda ticker: QuoteData(ticker=ticker, market_cap=1))
+    monkeypatch.setattr(screener, "compute_financial_metrics", lambda ticker: {"metrics": {}, "warnings": []})
+    result = screener.screen_stocks(screener.ScreenerCriteria(limit=5))
+    assert "Partial results" in result[0].warnings[-1]
+
+
+@pytest.mark.unit
+def test_screener_criteria_rejects_invalid_bounds():
+    with pytest.raises(ValueError):
+        screener.ScreenerCriteria(min_market_cap=10, max_market_cap=1)
 
 
 @pytest.mark.unit

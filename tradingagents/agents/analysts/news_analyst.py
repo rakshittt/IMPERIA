@@ -1,3 +1,7 @@
+import logging
+import time
+from typing import Any
+
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from tradingagents.agents.utils.agent_utils import (
     get_global_news,
@@ -5,12 +9,38 @@ from tradingagents.agents.utils.agent_utils import (
     get_language_instruction,
     get_news,
 )
+from tradingagents.dataflows.news_aggregator import get_stock_news
+from tradingagents.dataflows.news_knowledge_brain import search_tavily
+
+logger = logging.getLogger(__name__)
+
+
+def _aggregate_news_context(state: dict[str, Any]) -> str:
+    rows: list[str] = []
+    for holding in state.get("user_portfolio", []):
+        ticker = str(holding.get("ticker", "")).upper()
+        if not ticker:
+            continue
+        try:
+            headlines = [item.model_dump() for item in get_stock_news(ticker, limit=5)]
+            rows.append(f"{ticker} aggregated news: {headlines}")
+        except Exception as exc:
+            logger.warning("aggregated_news_failed ticker=%s error=%s", ticker, type(exc).__name__)
+    try:
+        web = search_tavily(f"{state.get('portfolio_key', '')} portfolio latest US stock news", max_results=5)
+        if web:
+            rows.append(f"Tavily web context: {web}")
+    except Exception as exc:
+        logger.warning("tavily_news_failed error=%s", type(exc).__name__)
+    return "\n".join(rows)
 
 
 def create_news_analyst(llm):
     def news_analyst_node(state):
+        started = time.perf_counter()
         current_date = state["analysis_date"]
         portfolio_context = state["portfolio_context"]
+        aggregated_context = _aggregate_news_context(state)
 
         tools = [
             get_news,
@@ -113,7 +143,8 @@ CRITICAL RULES:
                     " Your ONLY job is analyzing news events, insider transactions, and information catalysts."
                     " Use the provided tools to gather comprehensive news data."
                     " You have access to: {tool_names}.\n{system_message}"
-                    "Analysis date: {current_date}.\n{portfolio_context}",
+                    "Analysis date: {current_date}.\n{portfolio_context}\n"
+                    "Aggregated free news context:\n{aggregated_context}",
                 ),
                 MessagesPlaceholder(variable_name="messages"),
             ]
@@ -123,6 +154,7 @@ CRITICAL RULES:
         prompt = prompt.partial(tool_names=", ".join([tool.name for tool in tools]))
         prompt = prompt.partial(current_date=current_date)
         prompt = prompt.partial(portfolio_context=portfolio_context)
+        prompt = prompt.partial(aggregated_context=aggregated_context)
 
         chain = prompt | llm.bind_tools(tools)
         result = chain.invoke(state["messages"])
@@ -132,6 +164,11 @@ CRITICAL RULES:
         if len(result.tool_calls) == 0:
             report = result.content
 
+        logger.info(
+            "agent_completed agent_name=News Analyst duration_ms=%d data_points_used=%d",
+            int((time.perf_counter() - started) * 1000),
+            len(aggregated_context),
+        )
         return {
             "messages": [result],
             "news_report": report,

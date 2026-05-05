@@ -25,15 +25,15 @@ DEFAULT_CONFIG = {
     # disables rotation entirely.
     "memory_log_max_entries": None,
     # LLM settings
-    "llm_provider": "nvidia",
-    "deep_think_llm": "deepseek-ai/deepseek-v4-pro",
-    "quick_think_llm": "deepseek-ai/deepseek-v4-pro",
+    "llm_provider": "deepseek",
+    "deep_think_llm": os.getenv("DEEPSEEK_DEEP_MODEL", "deepseek-v4-pro"),
+    "quick_think_llm": os.getenv("DEEPSEEK_FAST_MODEL", "deepseek-v4-flash"),
     # When None, each provider's client falls back to its own default endpoint
     # (api.openai.com for OpenAI, generativelanguage.googleapis.com for Gemini, ...).
     # The CLI overrides this per provider when the user picks one. Keeping a
     # provider-specific URL here would leak (e.g. OpenAI's /v1 was previously
     # being forwarded to Gemini, producing malformed request URLs).
-    "backend_url": None,
+    "backend_url": os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com"),
     # Provider-specific thinking configuration
     "google_thinking_level": None,      # "high", "minimal", etc.
     "openai_reasoning_effort": None,    # "medium", "high", "low"

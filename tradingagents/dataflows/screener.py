@@ -8,12 +8,12 @@ import os
 import re
 from typing import Any
 
-import requests
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from tradingagents.cache.sqlite_cache import get_default_cache
 from tradingagents.dataflows.computed_metrics import compute_financial_metrics
 from tradingagents.dataflows.market_data import get_quote, load_universe
+from tradingagents.utils.deepseek import deepseek_text
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,46 @@ class ScreenerCriteria(BaseModel):
     min_current_ratio: float | None = None
     exchange: str = "US"
     limit: int = 20
+
+    @field_validator(
+        "min_market_cap",
+        "max_market_cap",
+        "min_pe",
+        "max_pe",
+        "min_revenue_growth",
+        "min_gross_margin",
+        "min_net_margin",
+        "min_roe",
+        "max_debt_equity",
+        "min_current_ratio",
+    )
+    @classmethod
+    def numeric_bounds_are_non_negative(cls, value: float | None) -> float | None:
+        if value is not None and value < 0:
+            raise ValueError("Screener numeric bounds must be non-negative.")
+        return value
+
+    @field_validator("limit")
+    @classmethod
+    def limit_is_bounded(cls, value: int) -> int:
+        if value < 1 or value > 100:
+            raise ValueError("limit must be between 1 and 100.")
+        return value
+
+    @model_validator(mode="after")
+    def min_is_below_max(self) -> "ScreenerCriteria":
+        pairs = (
+            (self.min_market_cap, self.max_market_cap, "market_cap"),
+            (self.min_pe, self.max_pe, "pe"),
+        )
+        for minimum, maximum, name in pairs:
+            if minimum is not None and maximum is not None and minimum > maximum:
+                raise ValueError(f"min_{name} must be less than or equal to max_{name}.")
+        return self
+
+    def has_active_filters(self) -> bool:
+        values = self.model_dump(exclude={"exchange", "limit", "sectors"})
+        return bool(self.sectors or any(value is not None for value in values.values()))
 
 
 class ScreenerResult(BaseModel):
@@ -94,22 +134,18 @@ def parse_nl_screener_query(query: str) -> ScreenerCriteria:
     if not api_key:
         return criteria
     try:
-        response = requests.post(
-            "https://api.deepseek.com/v1/chat/completions",
-            headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={
-                "model": "deepseek-chat",
-                "temperature": 0,
-                "max_tokens": 300,
-                "messages": [
-                    {"role": "system", "content": "Extract stock screener criteria as compact JSON. Use only keys from ScreenerCriteria."},
-                    {"role": "user", "content": query},
-                ],
-            },
-            timeout=10,
+        content = deepseek_text(
+            [
+                {"role": "system", "content": "Extract stock screener criteria as compact JSON. Use only keys from ScreenerCriteria."},
+                {"role": "user", "content": query},
+            ],
+            mode="fast",
+            temperature=0,
+            max_tokens=300,
+            timeout=15,
         )
-        response.raise_for_status()
-        content = response.json()["choices"][0]["message"]["content"]
+        if not content:
+            return criteria
         parsed = json.loads(content[content.find("{") : content.rfind("}") + 1])
         merged = criteria.model_dump()
         for key, value in parsed.items():
@@ -155,11 +191,16 @@ def screen_stocks(criteria: ScreenerCriteria) -> list[ScreenerResult]:
     universe = load_universe()
     results: list[ScreenerResult] = []
     uncached = 0
+    partial_warning = None
     for ticker in universe:
         metric_key = f"metrics:{ticker}"
         cached = cache.get("screener_metrics", metric_key)
         if cached is None:
             if uncached >= MAX_UNCACHED_FETCHES:
+                partial_warning = (
+                    f"Partial results: stopped after {MAX_UNCACHED_FETCHES} uncached "
+                    "metric fetches to protect free data providers."
+                )
                 break
             uncached += 1
             try:
@@ -213,4 +254,7 @@ def screen_stocks(criteria: ScreenerCriteria) -> list[ScreenerResult]:
             )
         )
     results.sort(key=lambda item: item.market_cap or 0, reverse=True)
-    return results[: max(1, min(criteria.limit, 100))]
+    limited = results[: max(1, min(criteria.limit, 100))]
+    if partial_warning and limited:
+        limited[0].warnings.append(partial_warning)
+    return limited

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+import unicodedata
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
@@ -69,7 +70,7 @@ def _dedupe(items: list[NewsItem], limit: int) -> list[NewsItem]:
     tracker = CitationTracker()
     for item in sorted(items, key=lambda row: _parse_dt(row.published_at), reverse=True):
         url_key = (item.url or "").strip().lower()
-        title_key = item.title.lower().strip()[:80]
+        title_key = unicodedata.normalize("NFKC", item.title).casefold().strip()[:80]
         if url_key and url_key in seen_urls:
             continue
         if title_key and any(title_key.startswith(prefix) or prefix.startswith(title_key) for prefix in title_prefixes):
@@ -221,7 +222,12 @@ def search_news(query: str, limit: int = 20) -> list[NewsItem]:
     cached = cache.get("news", key)
     if cached is not None:
         return [NewsItem.model_validate(item) for item in cached]
-    items = _newsapi_search(query) + _newsdata_search(query) + _thenewsapi_search(query)
+    items: list[NewsItem] = []
+    for adapter in (_newsapi_search, _newsdata_search, _thenewsapi_search):
+        try:
+            items.extend(adapter(query))
+        except Exception as exc:
+            logger.warning("news_adapter_failed adapter=%s error=%s", adapter.__name__, type(exc).__name__)
     result = _dedupe(items, limit)
     cache.set("news", key, [item.model_dump() for item in result], ttl_seconds=NEWS_TTL)
     return result
@@ -234,9 +240,16 @@ def get_stock_news(ticker: str, limit: int = 20) -> list[NewsItem]:
     cached = cache.get("news", key)
     if cached is not None:
         return [NewsItem.model_validate(item) for item in cached]
-    items = _finnhub_company_news(symbol)
-    items += search_news(f"{symbol} stock", limit=limit * 2)
-    items += _yfinance_news(symbol, limit=limit)
+    items: list[NewsItem] = []
+    for adapter in (
+        lambda query: _finnhub_company_news(query),
+        lambda query: search_news(f"{query} stock", limit=limit * 2),
+        lambda query: _yfinance_news(query, limit=limit),
+    ):
+        try:
+            items.extend(adapter(symbol))
+        except Exception as exc:
+            logger.warning("stock_news_adapter_failed ticker=%s error=%s", symbol, type(exc).__name__)
     for item in items:
         if symbol not in item.tickers_mentioned:
             item.tickers_mentioned.append(symbol)

@@ -15,6 +15,9 @@ HTTP API
   -> cache/persistence: SQLite TTL cache + user_data.db
   -> optional synthesis: DeepSeek fast response synthesizer
   -> deep research: ThreadPoolExecutor jobs around TradingAgentsGraph
+       -> market/fundamentals/news/social/macro analysts
+       -> SEC filings + macro context + earnings specialist agents
+       -> bull/bear debate -> research manager -> trader -> risk -> portfolio manager
 ```
 
 ## Data Source Matrix
@@ -28,6 +31,8 @@ HTTP API
 | Market news | NewsAPI | NewsData, TheNewsAPI |
 | Earnings calendar/history | Finnhub | yfinance |
 | Fast synthesis | DeepSeek | deterministic template |
+| Deep research synthesis | DeepSeek | specialist deterministic placeholders on source failure |
+| Deep context orchestration | DeepSeekContextOrchestrator | per-source timeout warnings |
 | Screener metrics | computed_metrics/yfinance | cached values, SEC fallback inside computed metrics |
 
 Paid-only feeds such as Bloomberg, FactSet, S&P Global paid feeds, Morningstar paid feeds, Quiver paid APIs, Quartr paid APIs, and premium-only EODHD features are not used by the backend.
@@ -53,10 +58,23 @@ NEWSDATA_API_KEY=
 THENEWSAPI_COM_API_TOKEN=
 THENEWSAPI_API_TOKEN=
 TAVILY_API_KEY=
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_FAST_MODEL=deepseek-v4-flash
+DEEPSEEK_DEEP_MODEL=deepseek-v4-pro
+DEEPSEEK_CALLS_PER_MINUTE=20
 ```
 
 Do not hardcode API keys in source files or docs. The API loads keys from the process environment or `.env`.
-Some keys are retained for compatibility with existing project integrations. Phase 2 core market intelligence uses only free-tier-safe paths and does not call paid-only EODHD, Quiver, Quartr, Bloomberg, FactSet, S&P Global, or Morningstar feeds.
+Some keys are retained for compatibility with existing project integrations. Core fast-market intelligence uses only free-tier-safe paths and does not call paid-only EODHD, Quiver, Quartr, Bloomberg, FactSet, S&P Global, or Morningstar feeds.
+
+## Phase 3 Hardening
+
+- All API responses include `X-Content-Type-Options: nosniff` and `X-Frame-Options: DENY`.
+- API rate limiting uses a per-client sliding window from `TRADINGAGENTS_API_RATE_LIMIT`; DeepSeek has a separate 20 calls/minute internal limiter.
+- Ticker inputs are normalized to US-style symbols and invalid symbols return 422 instead of 500.
+- Date inputs are validated as ISO `YYYY-MM-DD`.
+- Deep research now has additive specialist context before bull/bear debate: SEC filings, macro/sector context, and earnings/guidance.
+- `DeepSeekContextOrchestrator` gathers fast and deep context bundles concurrently with per-source timeouts and warning capture.
 
 ## Endpoint Reference
 
@@ -98,7 +116,7 @@ Compatibility routes remain: `POST /api/analyze`, `GET /api/quote/{ticker}`, `GE
 - SEC EDGAR: identify with `SEC_USER_AGENT` and keep request rate modest.
 - yfinance: unofficial, can rate-limit or change schemas.
 - Finnhub, Alpha Vantage, NewsAPI, NewsData, and TheNewsAPI: free tiers have request limits; provider calls use timeouts, retries, and cache/stale fallback where practical.
-- DeepSeek synthesis is optional and falls back to deterministic cited text if unavailable.
+- DeepSeek synthesis is optional for fast answers and falls back to deterministic cited text if unavailable. Deep research is configured to use DeepSeek provider/model names by default.
 
 ## Limitations
 

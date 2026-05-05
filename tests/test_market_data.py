@@ -29,7 +29,7 @@ def test_get_quote_falls_back_to_finnhub(cache, monkeypatch):
 
 
 @pytest.mark.unit
-def test_get_batch_quotes_caps_at_50(cache, monkeypatch):
+def test_get_batch_quotes_splits_over_50(cache, monkeypatch):
     seen = []
     monkeypatch.setattr(market_data, "_retry", lambda func: (_ for _ in ()).throw(RuntimeError("batch")))
 
@@ -39,8 +39,8 @@ def test_get_batch_quotes_caps_at_50(cache, monkeypatch):
 
     monkeypatch.setattr(market_data, "get_quote", fake_quote)
     result = market_data.get_batch_quotes([f"T{i}" for i in range(60)])
-    assert len(result) == 50
-    assert len(seen) == 50
+    assert len(result) == 60
+    assert len(seen) == 60
 
 
 @pytest.mark.unit
@@ -75,6 +75,32 @@ def test_market_breadth_chunks_full_universe(cache, monkeypatch):
     breadth = market_data.get_market_breadth()
     assert len(seen) == 2
     assert breadth.advancing == 75
+
+
+@pytest.mark.unit
+def test_market_indices_include_vix(cache, monkeypatch):
+    monkeypatch.setattr(
+        market_data,
+        "get_batch_quotes",
+        lambda tickers: {ticker: market_data.QuoteData(ticker=ticker, price=20, change_pct=1) for ticker in tickers},
+    )
+    indices = market_data.get_market_indices()
+    assert any(item.symbol == "^VIX" for item in indices)
+
+
+@pytest.mark.unit
+def test_market_movers_tolerates_partial_batch_failure(cache, monkeypatch):
+    monkeypatch.setattr(market_data, "load_universe", lambda limit=None: ["AAA", "BBB", "CCC"])
+
+    def fake_batch(tickers):
+        if "BBB" in tickers:
+            raise RuntimeError("partial")
+        return {ticker: market_data.QuoteData(ticker=ticker, change_pct=1) for ticker in tickers}
+
+    monkeypatch.setattr(market_data, "get_batch_quotes", fake_batch)
+    movers = market_data.get_market_movers(2)
+    assert movers.gainers == []
+    assert "Batch 1 failed" in movers.warnings[0]
 
 
 @pytest.mark.unit

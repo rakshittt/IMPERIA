@@ -202,7 +202,7 @@ class SQLiteCache:
     def _get_row(self, namespace: str, key: str) -> sqlite3.Row | None:
         try:
             self._ensure_schema()
-            with self._connect() as conn:
+            with self._lock, self._connect() as conn:
                 cur = conn.execute(
                     """
                     SELECT namespace, cache_key, payload, created_at, ttl_seconds, metadata

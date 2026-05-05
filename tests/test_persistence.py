@@ -1,3 +1,5 @@
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 
 from tradingagents.persistence import db as db_module
@@ -36,6 +38,25 @@ def test_watchlist_quotes(persistence_db, monkeypatch):
     record = watchlist.create_watchlist("Core", ["AAPL"])
     monkeypatch.setattr(watchlist, "get_batch_quotes", lambda tickers: {"AAPL": QuoteData(ticker="AAPL", price=1)})
     assert watchlist.get_watchlist_quotes(record.id)[0].price == 1
+
+
+@pytest.mark.unit
+def test_watchlist_quotes_over_50_tickers(persistence_db, monkeypatch):
+    tickers = [f"T{i}" for i in range(60)]
+    record = watchlist.create_watchlist("Large", tickers)
+    monkeypatch.setattr(watchlist, "get_batch_quotes", lambda symbols: {ticker: QuoteData(ticker=ticker, price=1) for ticker in symbols})
+    assert len(watchlist.get_watchlist_quotes(record.id)) == 60
+
+
+@pytest.mark.unit
+def test_concurrent_watchlist_writes(persistence_db):
+    def create_one(index):
+        return watchlist.create_watchlist(f"W{index}", [f"T{index}"]).id
+
+    with ThreadPoolExecutor(max_workers=5) as pool:
+        ids = list(pool.map(create_one, range(20)))
+    assert len(ids) == 20
+    assert len(watchlist.list_watchlists()) == 20
 
 
 @pytest.mark.unit

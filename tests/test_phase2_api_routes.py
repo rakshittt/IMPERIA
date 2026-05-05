@@ -32,7 +32,7 @@ def client(monkeypatch):
     monkeypatch.setattr(earnings.earnings_data, "get_next_earnings", lambda ticker: Dumpable({"ticker": ticker.upper(), "report_date": "2026-02-01"}))
 
     monkeypatch.setattr(screener, "screen_stocks", lambda criteria: [ScreenerResult(ticker="AAPL", market_cap=1)])
-    monkeypatch.setattr(screener, "parse_nl_screener_query", lambda query: ScreenerCriteria(max_pe=20))
+    monkeypatch.setattr(screener, "parse_nl_screener_query", lambda query: ScreenerCriteria() if "things" in query else ScreenerCriteria(max_pe=20))
 
     monkeypatch.setattr(watchlist, "create_watchlist", lambda name, tickers: Dumpable({"id": "wl1", "name": name, "tickers": tickers}))
     monkeypatch.setattr(watchlist, "list_watchlists", lambda: [Dumpable({"id": "wl1", "name": "Tech", "tickers": ["AAPL"]})])
@@ -72,6 +72,13 @@ def test_phase2_earnings_routes(client):
 def test_phase2_screener_routes(client):
     assert client.post("/api/screener/run", json={"max_pe": 20}).json()["results"][0]["ticker"] == "AAPL"
     assert client.post("/api/screener/nl", json={"query": "cheap tech stocks"}).json()["criteria"]["max_pe"] == 20
+
+
+@pytest.mark.unit
+def test_phase3_validation_routes(client):
+    assert client.get("/api/stock/BTC-USD/profile").status_code == 422
+    assert client.get("/api/earnings/AAPL/history?limit=0").status_code == 422
+    assert client.post("/api/screener/nl", json={"query": "show me things"}).status_code == 422
 
 
 @pytest.mark.unit

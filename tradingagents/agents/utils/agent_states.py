@@ -28,6 +28,9 @@ class AgentState(MessagesState):
     news_report: Annotated[str, "Report from the News Intelligence Analyst"]
     fundamentals_report: Annotated[str, "Report from the Fundamentals Analyst"]
     macro_report: Annotated[str, "Report from the Macro Economist"]
+    sec_filings_report: Annotated[dict[str, Any], "Report from the SEC Filings Analyst"]
+    earnings_report: Annotated[dict[str, Any], "Report from the Earnings Analyst"]
+    macro_context_report: Annotated[dict[str, Any], "Report from the Macro Context Agent"]
 
     # Research debate and synthesis
     research_debate_state: Annotated[
