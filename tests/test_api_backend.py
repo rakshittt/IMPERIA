@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from tradingagents.api.main import create_app
-from tradingagents.api.routes import ai, market, search, stock
+from tradingagents.api.routes import ai, search, stock
 
 
 class FakeEngine:
@@ -30,26 +30,30 @@ class FakeEngine:
     def get_holders(self, ticker):
         return {"ticker": ticker.upper(), "institutional_holders": []}
 
-    def get_market_indices(self):
-        return [{"name": "S&P 500", "symbol": "^GSPC", "price": 5000, "change_pct": 1}]
-
-    def get_market_movers(self, limit=10):
-        return {"gainers": [{"ticker": "AAPL"}], "losers": []}
-
-    def get_market_summary(self):
-        return {"indices": self.get_market_indices(), "movers": self.get_market_movers()}
-
     def answer_query(self, query):
         return {"mode": "fast", "answer": "AAPL summary", "key_stats": {}, "data": {}, "citations": [], "warnings": []}
 
 
 @pytest.fixture()
 def client(monkeypatch):
+    monkeypatch.setenv("TRADINGAGENTS_API_CACHE_TTL", "0")
     fake = FakeEngine()
     monkeypatch.setattr(search, "get_fast_engine", lambda: fake)
     monkeypatch.setattr(stock, "get_fast_engine", lambda: fake)
-    monkeypatch.setattr(market, "get_fast_engine", lambda: fake)
     monkeypatch.setattr(ai, "get_fast_engine", lambda: fake)
+    from tradingagents.api.routes import market
+
+    monkeypatch.setattr(stock.news_aggregator, "get_stock_news", lambda ticker, limit=10: [type("Obj", (), {"model_dump": lambda self: {"title": "Headline", "url": "https://example.com"}})()])
+    monkeypatch.setattr(stock.earnings_data, "get_earnings_history", lambda ticker: [type("Obj", (), {"model_dump": lambda self: {"ticker": ticker.upper(), "beat_miss": "beat"}})()])
+    monkeypatch.setattr(stock.earnings_data, "get_next_earnings", lambda ticker: type("Obj", (), {"model_dump": lambda self: {"ticker": ticker.upper(), "report_date": "2026-01-01"}})())
+    monkeypatch.setattr(stock.market_data, "get_ohlcv", lambda ticker, period="1mo", interval="1d": None)
+    monkeypatch.setattr(stock.market_data, "get_intraday", lambda ticker, interval="5m": None)
+    monkeypatch.setattr(stock.market_data, "ohlcv_to_records", lambda frame: [])
+    monkeypatch.setattr(stock.market_data, "get_quote", lambda ticker: type("Obj", (), {"model_dump": lambda self: {"ticker": ticker.upper(), "price": 1, "change_pct": 0}})())
+    monkeypatch.setattr(market.market_data, "get_market_indices", lambda: [type("Obj", (), {"model_dump": lambda self: {"name": "S&P 500", "symbol": "^GSPC", "price": 5000, "change_pct": 1}})()])
+    monkeypatch.setattr(market.market_data, "get_market_movers", lambda n=10: type("Obj", (), {"model_dump": lambda self: {"gainers": [{"ticker": "AAPL"}], "losers": []}})())
+    monkeypatch.setattr(market.market_data, "get_market_breadth", lambda: type("Obj", (), {"model_dump": lambda self: {"advancing": 1, "declining": 0, "unchanged": 0, "total": 1}})())
+    monkeypatch.setattr(market.news_aggregator, "get_market_news", lambda limit=5: [])
     return TestClient(create_app())
 
 
@@ -60,7 +64,7 @@ def test_core_api_endpoints(client):
     assert client.get("/api/stock/AAPL/financials").json()["computed"]["metrics"]["pe"] == 10
     assert client.get("/api/stock/AAPL/ratios").json()["metrics"]["pe"] == 10
     assert client.get("/api/stock/AAPL/news").json()["articles"][0]["title"] == "Headline"
-    assert client.get("/api/stock/AAPL/earnings").json()["earnings_dates"] == []
+    assert client.get("/api/stock/AAPL/earnings").json()["history"][0]["beat_miss"] == "beat"
     assert client.get("/api/stock/AAPL/holders").json()["institutional_holders"] == []
     assert client.get("/api/market/indices").json()[0]["symbol"] == "^GSPC"
     assert client.get("/api/market/movers").json()["gainers"][0]["ticker"] == "AAPL"

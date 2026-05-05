@@ -1,0 +1,20 @@
+[
+  "AAPL", "MSFT", "NVDA", "AMZN", "META", "GOOGL", "GOOG", "BRK-B", "LLY", "AVGO",
+  "JPM", "TSLA", "XOM", "UNH", "V", "MA", "COST", "HD", "PG", "NFLX",
+  "JNJ", "ABBV", "WMT", "BAC", "CRM", "ORCL", "KO", "MRK", "AMD", "CVX",
+  "PEP", "ADBE", "TMO", "LIN", "MCD", "CSCO", "ACN", "ABT", "WFC", "QCOM",
+  "GE", "IBM", "TXN", "CAT", "VZ", "INTU", "AMGN", "PM", "NOW", "ISRG",
+  "DIS", "NEE", "RTX", "GS", "SPGI", "UBER", "PFE", "AMAT", "AXP", "BKNG",
+  "LOW", "UNP", "HON", "PGR", "T", "DHR", "TJX", "BLK", "SYK", "SCHW",
+  "ETN", "BSX", "PANW", "COP", "VRTX", "C", "DE", "LRCX", "MDT", "ADP",
+  "ADI", "CB", "GILD", "MMC", "SBUX", "AMT", "MU", "PLD", "BMY", "SO",
+  "MO", "ELV", "CI", "REGN", "FI", "KLAC", "ICE", "DUK", "EQIX", "INTC",
+  "SHW", "ZTS", "WM", "MCO", "CL", "NKE", "APH", "HCA", "ANET", "CDNS",
+  "SNPS", "TDG", "UPS", "TT", "PH", "CMG", "AON", "ORLY", "MS", "USB",
+  "PNC", "EOG", "GD", "ITW", "MMM", "EMR", "ECL", "APD", "FDX", "MAR",
+  "HLT", "MCK", "COF", "AIG", "MET", "PRU", "TRV", "ALL", "AFL", "TFC",
+  "GM", "F", "NOC", "LMT", "BA", "ADSK", "FTNT", "CRWD", "DDOG", "NET",
+  "SNOW", "TEAM", "MDB", "ZS", "OKTA", "PLTR", "SHOP", "SQ", "PYPL", "ROKU",
+  "SPY", "QQQ", "DIA", "IWM", "VTI", "VOO", "IVV", "XLK", "XLF", "XLE",
+  "XLV", "XLC", "XLY", "XLP", "XLI", "XLB", "XLRE", "XLU"
+]

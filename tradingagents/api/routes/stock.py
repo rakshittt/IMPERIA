@@ -3,6 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Query
 
 from tradingagents.api.deps import get_fast_engine
+from tradingagents.dataflows import earnings_data, market_data, news_aggregator
 
 router = APIRouter(prefix="/api/stock", tags=["stock"])
 compat_router = APIRouter(tags=["compat"])
@@ -29,17 +30,30 @@ async def chart(
     period: str = Query("1mo"),
     interval: str = Query("1d"),
 ):
-    return get_fast_engine().get_chart(ticker, period=period, interval=interval)
+    frame = market_data.get_ohlcv(ticker, period=period, interval=interval)
+    return {"ticker": ticker.upper(), "period": period, "interval": interval, "points": market_data.ohlcv_to_records(frame)}
+
+
+@router.get("/{ticker}/intraday")
+async def intraday(ticker: str, interval: str = Query("5m")):
+    frame = market_data.get_intraday(ticker, interval=interval)
+    return {"ticker": ticker.upper(), "interval": interval, "points": market_data.ohlcv_to_records(frame)}
 
 
 @router.get("/{ticker}/news")
 async def news(ticker: str, limit: int = Query(10, ge=1, le=50)):
-    return {"ticker": ticker.upper(), "articles": get_fast_engine().get_news(ticker, limit=limit)}
+    return {"ticker": ticker.upper(), "articles": [item.model_dump() for item in news_aggregator.get_stock_news(ticker, limit=limit)]}
 
 
 @router.get("/{ticker}/earnings")
 async def earnings(ticker: str):
-    return get_fast_engine().get_earnings(ticker)
+    return {"ticker": ticker.upper(), "history": [item.model_dump() for item in earnings_data.get_earnings_history(ticker)]}
+
+
+@router.get("/{ticker}/next-earnings")
+async def next_earnings(ticker: str):
+    event = earnings_data.get_next_earnings(ticker)
+    return event.model_dump() if event else {"ticker": ticker.upper(), "event": None}
 
 
 @router.get("/{ticker}/holders")
@@ -71,7 +85,7 @@ async def ai_summary(ticker: str):
 
 @compat_router.get("/api/quote/{ticker}")
 async def quote_compat(ticker: str):
-    quote = get_fast_engine().get_quote(ticker)
+    quote = market_data.get_quote(ticker).model_dump()
     return {
         "ticker": quote.get("ticker"),
         "name": quote.get("name"),

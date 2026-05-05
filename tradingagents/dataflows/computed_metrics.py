@@ -162,6 +162,16 @@ def compute_financial_metrics(ticker: str, *, include_sec_fallback: bool = True)
     }
     return {
         "ticker": symbol,
+        "profile": {
+            key: value
+            for key, value in {
+                "name": info.get("longName") or info.get("shortName"),
+                "sector": info.get("sector"),
+                "industry": info.get("industry"),
+                "market_cap": market_cap,
+            }.items()
+            if value is not None
+        },
         "metrics": {key: value for key, value in metrics.items() if value is not None},
         "ttm": {key: value for key, value in ttm.items() if value is not None},
         "balance_sheet_snapshot": {

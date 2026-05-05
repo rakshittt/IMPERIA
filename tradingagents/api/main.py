@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 
 from tradingagents.api.middleware.cache_middleware import CacheMiddleware
 from tradingagents.api.middleware.rate_limiter import RateLimitMiddleware
-from tradingagents.api.routes import ai, earnings, market, screener, search, stock
+from tradingagents.api.routes import ai, earnings, market, research, screener, search, stock, watchlist
 
 load_dotenv()
 
@@ -34,6 +34,8 @@ def create_app() -> FastAPI:
     app.include_router(market.compat_router)
     app.include_router(earnings.router)
     app.include_router(screener.router)
+    app.include_router(watchlist.router)
+    app.include_router(research.router)
     app.include_router(ai.router)
 
     frontend_dir = Path("frontend")

@@ -16,6 +16,10 @@ DEFAULT_CONFIG = {
     ),
     "fast_query_enabled": True,
     "api_rate_limit_per_minute": int(os.getenv("TRADINGAGENTS_API_RATE_LIMIT", "120")),
+    "persistence_db_path": os.getenv(
+        "PERSISTENCE_DB_PATH",
+        os.path.abspath(os.path.join(".", ".tradingagents_data", "user_data.db")),
+    ),
     "memory_log_path": os.getenv("TRADINGAGENTS_MEMORY_LOG_PATH", os.path.join(_TRADINGAGENTS_HOME, "memory", "portfolio_memory.md")),
     # Optional cap on the number of portfolio feedback memory entries. None
     # disables rotation entirely.

@@ -218,6 +218,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 # Cache
+.tradingagents_data/
 **/data_cache/
 
 # Jetro and Editor configs

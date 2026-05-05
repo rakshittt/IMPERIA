@@ -32,6 +32,13 @@ DEFAULT_TTLS: dict[str, int] = {
     "ai_summaries": 15 * 60,
     "search": 24 * 60 * 60,
     "market": 60,
+    "market_movers": 120,
+    "market_breadth": 5 * 60,
+    "sector_performance": 5 * 60,
+    "earnings_calendar": 60 * 60,
+    "earnings_history": 6 * 60 * 60,
+    "screener_metrics": 6 * 60 * 60,
+    "research_status": 15,
     "api_response": 15,
 }
 

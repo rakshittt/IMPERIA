@@ -27,6 +27,19 @@ class ResearchRequest(BaseModel):
     profile: dict[str, Any] | None = None
 
 
+class WatchlistCreateRequest(BaseModel):
+    name: str
+    tickers: list[str] = Field(default_factory=list)
+
+
+class WatchlistTickerRequest(BaseModel):
+    ticker: str
+
+
+class ScreenerNLRequest(BaseModel):
+    query: str = Field(..., min_length=1)
+
+
 class SearchResponse(BaseModel):
     query: str
     results: list[dict[str, Any]]

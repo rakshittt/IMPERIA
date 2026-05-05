@@ -10,6 +10,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.persistence.portfolio import persist_research_result
 
 load_dotenv()
 
@@ -50,12 +51,13 @@ def get_trading_graph():
     return _TRADING_GRAPH
 
 
-def normalize_research_result(final_state: dict[str, Any]) -> dict[str, Any]:
-    rid = str(uuid.uuid4())[:8]
-    result = {"id": rid}
+def normalize_research_result(final_state: dict[str, Any], research_id: str | None = None) -> dict[str, Any]:
+    rid = research_id or str(uuid.uuid4())[:8]
+    result = {"id": rid, "status": "completed"}
     for stage in RESEARCH_STAGES:
         result[stage] = final_state.get(stage, "")
     research_store[rid] = result
+    persist_research_result(rid, result, status="completed")
     return result
 
 
@@ -63,6 +65,7 @@ def run_deep_research(
     portfolio: list[dict[str, Any]],
     analysis_date: str | None = None,
     profile: dict[str, Any] | None = None,
+    research_id: str | None = None,
 ) -> dict[str, Any]:
     graph = get_trading_graph()
     final_state, _feedback = graph.analyze_portfolio(
@@ -70,4 +73,4 @@ def run_deep_research(
         get_analysis_date(analysis_date),
         profile or {},
     )
-    return normalize_research_result(final_state)
+    return normalize_research_result(final_state, research_id=research_id)

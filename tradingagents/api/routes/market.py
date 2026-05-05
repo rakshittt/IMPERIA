@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query
 
-from tradingagents.api.deps import get_fast_engine
+from tradingagents.dataflows import market_data, news_aggregator
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 compat_router = APIRouter(tags=["compat"])
@@ -10,25 +10,40 @@ compat_router = APIRouter(tags=["compat"])
 
 @router.get("/indices")
 async def indices():
-    return get_fast_engine().get_market_indices()
+    return [item.model_dump() for item in market_data.get_market_indices()]
 
 
 @router.get("/movers")
 async def movers(limit: int = Query(10, ge=1, le=25)):
-    return get_fast_engine().get_market_movers(limit=limit)
+    return market_data.get_market_movers(n=limit).model_dump()
+
+
+@router.get("/breadth")
+async def breadth():
+    return market_data.get_market_breadth().model_dump()
+
+
+@router.get("/sectors")
+async def sectors():
+    return [item.model_dump() for item in market_data.get_sector_performance()]
 
 
 @router.get("/summary")
 async def summary():
-    return get_fast_engine().get_market_summary()
+    return {
+        "indices": [item.model_dump() for item in market_data.get_market_indices()],
+        "movers": market_data.get_market_movers(n=5).model_dump(),
+        "breadth": market_data.get_market_breadth().model_dump(),
+        "top_news": [item.model_dump() for item in news_aggregator.get_market_news(limit=5)],
+    }
 
 
 @compat_router.get("/api/trending")
 async def trending_compat():
-    movers_data = get_fast_engine().get_market_movers(limit=10)
-    return movers_data.get("gainers", []) + movers_data.get("losers", [])
+    movers_data = market_data.get_market_movers(n=10)
+    return [item.model_dump() for item in movers_data.gainers + movers_data.losers]
 
 
 @compat_router.get("/api/market-snapshot")
 async def market_snapshot_compat():
-    return get_fast_engine().get_market_indices()
+    return [item.model_dump() for item in market_data.get_market_indices()]

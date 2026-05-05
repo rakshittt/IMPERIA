@@ -1,22 +1,15 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
-from sse_starlette.sse import EventSourceResponse
 
 from tradingagents.api.deps import get_fast_engine
 from tradingagents.api.models import AskRequest, ResearchRequest
-from tradingagents.api.services import (
-    RESEARCH_STAGES,
-    get_analysis_date,
-    research_store,
-    run_deep_research,
-)
+from tradingagents.api.services import run_deep_research
 from tradingagents.engine.query_router import route_query
 
 router = APIRouter(prefix="/api", tags=["ai"])
@@ -58,20 +51,6 @@ async def ask(payload: AskRequest):
     return {"mode": "deep", "route": route.to_dict(), "research": result}
 
 
-@router.post("/research")
-async def research(payload: ResearchRequest):
-    portfolio = [item.model_dump(exclude_none=True) for item in payload.portfolio]
-    loop = asyncio.get_running_loop()
-    result = await loop.run_in_executor(
-        None,
-        run_deep_research,
-        portfolio,
-        payload.date,
-        payload.profile or {},
-    )
-    return result
-
-
 @router.post("/analyze")
 async def analyze_compat(request: Request):
     data = await request.json()
@@ -80,37 +59,6 @@ async def analyze_compat(request: Request):
         date=data.get("date") or datetime.now().strftime("%Y-%m-%d"),
         profile=data.get("profile", {}),
     )
-    return await research(payload)
-
-
-@router.get("/research/{rid}")
-async def get_research(rid: str):
-    if rid in research_store:
-        return research_store[rid]
-    return JSONResponse({"error": "Research not found"}, status_code=404)
-
-
-@router.post("/research/stream")
-async def stream_research(request: Request):
-    data = await request.json()
-    portfolio = data.get("portfolio", [])
-    analysis_date = get_analysis_date(data.get("date"))
-    user_profile = data.get("profile", {})
-
-    async def event_generator():
-        loop = asyncio.get_running_loop()
-        try:
-            result = await loop.run_in_executor(
-                None,
-                run_deep_research,
-                portfolio,
-                analysis_date,
-                user_profile,
-            )
-            for stage in RESEARCH_STAGES:
-                yield {"data": json.dumps({"stage": stage, "content": result.get(stage, "")})}
-            yield {"data": json.dumps({"stage": "done", "id": result["id"]})}
-        except Exception as exc:
-            yield {"data": json.dumps({"stage": "error", "message": str(exc)})}
-
-    return EventSourceResponse(event_generator())
+    portfolio = [item.model_dump(exclude_none=True) for item in payload.portfolio]
+    loop = asyncio.get_running_loop()
+    return await loop.run_in_executor(None, run_deep_research, portfolio, payload.date, payload.profile or {})

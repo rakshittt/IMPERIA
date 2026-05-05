@@ -173,12 +173,18 @@ Common backend routes:
 curl "http://localhost:8000/api/search?q=Apple"
 curl "http://localhost:8000/api/stock/AAPL/ratios"
 curl "http://localhost:8000/api/market/summary"
+curl "http://localhost:8000/api/market/breadth"
+curl "http://localhost:8000/api/market/sectors"
+curl "http://localhost:8000/api/earnings/AAPL/next"
 curl -X POST "http://localhost:8000/api/ask" \
   -H "Content-Type: application/json" \
   -d '{"query":"What is Apple P/E ratio?"}'
+curl -X POST "http://localhost:8000/api/screener/nl" \
+  -H "Content-Type: application/json" \
+  -d '{"query":"profitable tech stocks with P/E under 20"}'
 ```
 
-Detailed backend notes live in `docs/backend_free_us_finance.md`.
+Deep research jobs can now be queued with `POST /api/research` and checked with `GET /api/research/{id}`. Detailed backend notes live in `docs/backend_free_us_finance.md`; live-provider smoke checks are available with `.venv/bin/python scripts/smoke_test.py`.
 
 ---
 

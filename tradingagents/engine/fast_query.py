@@ -9,11 +9,9 @@ from typing import Any
 import pandas as pd
 
 from tradingagents.cache.sqlite_cache import DEFAULT_TTLS, SQLiteCache, get_default_cache
+from tradingagents.dataflows import earnings_data, market_data, news_aggregator
 from tradingagents.dataflows.computed_metrics import compute_financial_metrics
-from tradingagents.dataflows.free_provider_fallbacks import (
-    get_provider_profile_fallback,
-    get_provider_quote_fallback,
-)
+from tradingagents.dataflows.free_provider_fallbacks import get_provider_profile_fallback
 from tradingagents.dataflows.sec_edgar import (
     get_13f_related_filings,
     get_form4_insider_trades,
@@ -22,6 +20,7 @@ from tradingagents.dataflows.sec_edgar import (
 )
 from tradingagents.engine.citation_tracker import CitationTracker, attach_citations
 from tradingagents.engine.query_router import route_query
+from tradingagents.engine.search.response_synthesizer import synthesize_fast_answer
 from tradingagents.engine.search.ticker_resolver import resolve_ticker, search_symbols
 
 logger = logging.getLogger(__name__)
@@ -29,15 +28,6 @@ logger = logging.getLogger(__name__)
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
-
-def _to_float(value: Any) -> float | None:
-    try:
-        if value is None or pd.isna(value):
-            return None
-        return float(value)
-    except Exception:
-        return None
 
 
 def _jsonable(value: Any) -> Any:
@@ -82,7 +72,13 @@ class FastQueryEngine:
                 ratios = self.get_ratios(ticker)
                 news = self.get_news(ticker, limit=5) if route.intent in {"news_query", "earnings", "stock_lookup"} else []
                 data.update({"quote": quote, "profile": profile, "ratios": ratios, "news": news})
-                answer = self._summarize_stock(query, ticker, quote, profile, ratios, news)
+                synthesized = synthesize_fast_answer(
+                    query,
+                    {"quote": quote, "profile": profile, "ratios": ratios, "news": news},
+                )
+                answer = synthesized.answer_text
+                warnings.extend(synthesized.warnings)
+                citations.extend(synthesized.citations)
                 citations.add(
                     "market_data",
                     title=f"Yahoo Finance quote/profile for {ticker} via yfinance",
@@ -127,54 +123,7 @@ class FastQueryEngine:
         cached = self.cache.get("quotes", symbol)
         if cached is not None:
             return cached
-        warnings: list[str] = []
-        full_info: dict[str, Any] = {}
-        last_price = prev_close = change = change_pct = None
-        try:
-            import yfinance as yf
-
-            stock = yf.Ticker(symbol)
-            info = getattr(stock, "fast_info", None)
-            full_info = stock.info or {}
-            last_price = _to_float(getattr(info, "last_price", None) if info is not None else None) or _to_float(full_info.get("currentPrice") or full_info.get("regularMarketPrice"))
-            prev_close = _to_float(getattr(info, "previous_close", None) if info is not None else None) or _to_float(full_info.get("previousClose"))
-            change = (last_price - prev_close) if last_price is not None and prev_close not in (None, 0) else None
-            change_pct = (change / prev_close * 100) if change is not None and prev_close else None
-        except Exception as exc:
-            warnings.append(f"yfinance quote unavailable: {exc}")
-
-        fallback = None
-        if last_price is None:
-            fallback = get_provider_quote_fallback(symbol)
-            if fallback:
-                last_price = _to_float(fallback.get("price"))
-                prev_close = _to_float(fallback.get("previous_close"))
-                change = _to_float(fallback.get("change"))
-                change_pct = _to_float(fallback.get("change_pct"))
-            else:
-                stale = self.cache.get_stale("quotes", symbol)
-                if stale is not None:
-                    stale.setdefault("warnings", []).append("Returned stale cached quote after live providers failed.")
-                    return stale
-        payload = {
-            "ticker": symbol,
-            "name": full_info.get("shortName") or full_info.get("longName") or symbol,
-            "exchange": full_info.get("exchange") or (fallback or {}).get("exchange"),
-            "price": last_price,
-            "previous_close": prev_close,
-            "change": change,
-            "change_pct": change_pct,
-            "open": full_info.get("open") or (fallback or {}).get("open"),
-            "day_high": full_info.get("dayHigh") or (fallback or {}).get("day_high"),
-            "day_low": full_info.get("dayLow") or (fallback or {}).get("day_low"),
-            "volume": full_info.get("volume") or (fallback or {}).get("volume"),
-            "market_cap": full_info.get("marketCap"),
-            "as_of": _now_iso(),
-            "source": "yfinance" if fallback is None else fallback.get("source"),
-            "warnings": warnings,
-        }
-        self.cache.set("quotes", symbol, payload, ttl_seconds=DEFAULT_TTLS["quotes"])
-        return payload
+        return market_data.get_quote(symbol).model_dump()
 
     def get_profile(self, ticker: str) -> dict[str, Any]:
         symbol = ticker.upper().strip()
@@ -231,35 +180,7 @@ class FastQueryEngine:
         cached = self.cache.get("news", cache_key)
         if cached is not None:
             return cached
-        import yfinance as yf
-
-        stock = yf.Ticker(symbol)
-        raw_news = stock.get_news(count=limit) or []
-        articles: list[dict[str, Any]] = []
-        for item in raw_news[:limit]:
-            content = item.get("content") if isinstance(item, dict) else None
-            if content:
-                provider = content.get("provider") or {}
-                url_obj = content.get("canonicalUrl") or content.get("clickThroughUrl") or {}
-                articles.append(
-                    {
-                        "title": content.get("title"),
-                        "summary": content.get("summary"),
-                        "publisher": provider.get("displayName"),
-                        "url": url_obj.get("url"),
-                        "published_at": content.get("pubDate"),
-                    }
-                )
-            else:
-                articles.append(
-                    {
-                        "title": item.get("title"),
-                        "summary": item.get("summary"),
-                        "publisher": item.get("publisher"),
-                        "url": item.get("link"),
-                        "published_at": item.get("providerPublishTime"),
-                    }
-                )
+        articles = [item.model_dump() for item in news_aggregator.get_stock_news(symbol, limit=limit)]
         self.cache.set("news", cache_key, articles, ttl_seconds=DEFAULT_TTLS["news"])
         return articles
 
@@ -269,37 +190,25 @@ class FastQueryEngine:
         cached = self.cache.get("quotes", f"chart:{cache_key}")
         if cached is not None:
             return cached
-        import yfinance as yf
-
-        history = yf.Ticker(symbol).history(period=period, interval=interval)
-        if history is None or history.empty:
-            payload = {"ticker": symbol, "period": period, "interval": interval, "points": []}
-        else:
-            frame = history.reset_index()
-            points = []
-            for _, row in frame.iterrows():
-                points.append(
-                    {
-                        "date": str(row.iloc[0]),
-                        "open": _to_float(row.get("Open")),
-                        "high": _to_float(row.get("High")),
-                        "low": _to_float(row.get("Low")),
-                        "close": _to_float(row.get("Close")),
-                        "volume": _to_float(row.get("Volume")),
-                    }
-                )
-            payload = {"ticker": symbol, "period": period, "interval": interval, "points": points}
+        history = market_data.get_ohlcv(symbol, period=period, interval=interval)
+        payload = {
+            "ticker": symbol,
+            "period": period,
+            "interval": interval,
+            "points": market_data.ohlcv_to_records(history),
+        }
         self.cache.set("quotes", f"chart:{cache_key}", payload, ttl_seconds=DEFAULT_TTLS["quotes"])
         return payload
 
     def get_earnings(self, ticker: str) -> dict[str, Any]:
         symbol = ticker.upper().strip()
-        import yfinance as yf
-
-        stock = yf.Ticker(symbol)
-        dates = getattr(stock, "earnings_dates", None)
-        rows = _jsonable(dates) if dates is not None else []
-        return {"ticker": symbol, "earnings_dates": rows, "source": "yfinance"}
+        event = earnings_data.get_next_earnings(symbol)
+        return {
+            "ticker": symbol,
+            "history": [item.model_dump() for item in earnings_data.get_earnings_history(symbol)],
+            "next": event.model_dump() if event else None,
+            "surprise_stats": earnings_data.get_earnings_surprise_stats(symbol).model_dump(),
+        }
 
     def get_holders(self, ticker: str) -> dict[str, Any]:
         symbol = ticker.upper().strip()
@@ -327,43 +236,21 @@ class FastQueryEngine:
         return get_sec_filings(ticker, filing_type=filing_type, limit=limit)
 
     def get_market_indices(self) -> list[dict[str, Any]]:
-        cached = self.cache.get("indices", "major_us_indices")
-        if cached is not None:
-            return cached
-        indices = {
-            "S&P 500": "^GSPC",
-            "NASDAQ Composite": "^IXIC",
-            "Dow Jones Industrial Average": "^DJI",
-            "Russell 2000": "^RUT",
-        }
-        data = []
-        for name, symbol in indices.items():
-            try:
-                quote = self.get_quote(symbol)
-                data.append({"name": name, "symbol": symbol, **quote})
-            except Exception as exc:
-                data.append({"name": name, "symbol": symbol, "error": str(exc)})
-        self.cache.set("indices", "major_us_indices", data, ttl_seconds=DEFAULT_TTLS["indices"])
-        return data
+        return [item.model_dump() for item in market_data.get_market_indices()]
 
     def get_market_movers(self, limit: int = 10) -> dict[str, Any]:
-        universe = ["AAPL", "MSFT", "NVDA", "TSLA", "META", "AMZN", "GOOGL", "AMD", "NFLX", "JPM", "UNH", "XOM", "LLY"]
-        movers = []
-        for symbol in universe:
-            try:
-                quote = self.get_quote(symbol)
-                if quote.get("change_pct") is not None:
-                    movers.append(quote)
-            except Exception:
-                continue
-        gainers = sorted(movers, key=lambda row: row.get("change_pct") or 0, reverse=True)[:limit]
-        losers = sorted(movers, key=lambda row: row.get("change_pct") or 0)[:limit]
-        return {"gainers": gainers, "losers": losers, "source": "curated US large-cap universe via yfinance"}
+        return market_data.get_market_movers(n=limit).model_dump()
 
     def get_market_summary(self) -> dict[str, Any]:
         indices = self.get_market_indices()
         movers = self.get_market_movers(limit=5)
-        return {"indices": indices, "movers": movers, "generated_at": _now_iso()}
+        return {
+            "indices": indices,
+            "movers": movers,
+            "breadth": market_data.get_market_breadth().model_dump(),
+            "sectors": [item.model_dump() for item in market_data.get_sector_performance()],
+            "generated_at": _now_iso(),
+        }
 
     def _summarize_stock(
         self,
