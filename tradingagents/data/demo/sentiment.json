@@ -1,0 +1,7 @@
+{
+  "AAPL": {"sentiment_label": "mixed", "confidence_score": 68, "summary": "Demo sentiment is mixed: stable fundamentals and services strength offset hardware-cycle uncertainty."},
+  "MSFT": {"sentiment_label": "bullish", "confidence_score": 76, "summary": "Demo sentiment leans bullish because cloud and AI demand signals are constructive."},
+  "NVDA": {"sentiment_label": "bullish", "confidence_score": 82, "summary": "Demo sentiment leans bullish on AI infrastructure demand, with valuation and export-control risks."},
+  "TSLA": {"sentiment_label": "mixed", "confidence_score": 61, "summary": "Demo sentiment is mixed because delivery growth and margins remain debated."},
+  "AMD": {"sentiment_label": "bullish", "confidence_score": 71, "summary": "Demo sentiment leans bullish on AI accelerator opportunity but depends on execution."}
+}

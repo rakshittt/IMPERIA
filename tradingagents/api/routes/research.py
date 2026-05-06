@@ -28,8 +28,21 @@ async def list_research(limit: int = 20):
 
 @router.post("")
 async def submit_research(payload: ResearchRequest):
-    portfolio = [item.model_dump(exclude_none=True) for item in payload.portfolio]
-    return submit_research_job(run_deep_research, portfolio, payload.date, payload.profile or {})
+    portfolio = [item.model_dump(exclude_none=True) for item in payload.portfolio or []]
+    if not portfolio and payload.ticker:
+        portfolio = [{"ticker": payload.ticker, "weight": 1.0}]
+    if not portfolio:
+        return JSONResponse({"error": "Research requires a ticker or portfolio."}, status_code=422)
+    profile = payload.profile or {}
+    profile.update(
+        {
+            "question": payload.question,
+            "window": payload.window,
+            "focus": payload.focus,
+            "stock_first": bool(payload.ticker and not payload.portfolio),
+        }
+    )
+    return submit_research_job(run_deep_research, portfolio, payload.date, profile)
 
 
 @router.get("/stream/{research_id}")
@@ -53,9 +66,12 @@ async def stream_research_status(research_id: str):
 
 @router.post("/stream")
 async def legacy_stream_research(payload: ResearchRequest):
+    portfolio = [item.model_dump(exclude_none=True) for item in payload.portfolio or []]
+    if not portfolio and payload.ticker:
+        portfolio = [{"ticker": payload.ticker, "weight": 1.0}]
     submitted = submit_research_job(
         run_deep_research,
-        [item.model_dump(exclude_none=True) for item in payload.portfolio],
+        portfolio,
         payload.date,
         payload.profile or {},
     )

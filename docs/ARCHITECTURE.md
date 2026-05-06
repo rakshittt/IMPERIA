@@ -10,6 +10,12 @@ Client
      -> GET response cache middleware
      -> route module
 
+Stock-first path:
+  selected ticker + question
+    -> quote, price move, metrics, filings, earnings, news, sector context, optional Polymarket
+    -> citations and warnings
+    -> fast answer or queued deep report
+
 Fast path:
   /api/ask or direct stock/market routes
     -> query_router
@@ -30,7 +36,7 @@ Deep path:
     -> research manager
     -> trader
     -> risk analyst
-    -> portfolio manager
+    -> portfolio/research synthesizer
     -> persisted result
 ```
 
@@ -75,6 +81,8 @@ Portfolio Manager
 | News | Finnhub/NewsAPI/NewsData/TheNewsAPI | yfinance, Tavily for deep context |
 | Earnings | Finnhub | yfinance |
 | Ratios | yfinance statements | SEC XBRL fallback |
+| Demo | local deterministic fixtures | no external call required |
+| Sentiment | price/news/earnings/sector | optional read-only Polymarket |
 | Synthesis | DeepSeek | deterministic template |
 
 ## Persistence

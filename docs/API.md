@@ -17,6 +17,7 @@ http://localhost:8000
 | Method | Path | Purpose |
 | --- | --- | --- |
 | GET | `/api/health` | Service health and product scope |
+| GET | `/api/health/providers` | Cache, demo mode, SEC, optional provider, and Polymarket status |
 
 ## Search And AI
 
@@ -31,7 +32,7 @@ Example:
 ```bash
 curl -X POST "http://localhost:8000/api/ask" \
   -H "Content-Type: application/json" \
-  -d '{"query":"What is Apple P/E ratio?"}'
+  -d '{"ticker":"AAPL","query":"What happened to Apple today?"}'
 ```
 
 ## Stock
@@ -50,6 +51,36 @@ curl -X POST "http://localhost:8000/api/ask" \
 | GET | `/api/stock/{ticker}/filings` | SEC filing list |
 | GET | `/api/stock/{ticker}/insiders` | Form 4 insider activity |
 | GET | `/api/stock/{ticker}/ai-summary` | Fast AI stock summary |
+| GET | `/api/stock/{ticker}/summary` | Standard-envelope stock summary |
+| GET | `/api/stock/{ticker}/what-happened?window=today` | Explain recent stock-specific movement |
+| GET | `/api/stock/{ticker}/sentiment?window=today` | Combined research sentiment, not a recommendation |
+| GET | `/api/stock/{ticker}/research-snapshot` | Quote/news/metrics/earnings/filing/sentiment snapshot |
+| GET | `/api/stock/{ticker}/risks` | Research risks to watch |
+| GET | `/api/stock/{ticker}/bull-bear` | Bull and bear thesis evidence |
+| GET | `/api/stock/{ticker}/earnings-brief` | Earnings date/history/surprise brief |
+| GET | `/api/stock/{ticker}/filing-brief` | Recent SEC filing brief |
+| GET | `/api/stock/{ticker}/investor-checklist` | Educational research checklist |
+| GET | `/api/compare?ticker_a=AMD&ticker_b=NVDA` | Compare two supported US stocks |
+
+New stock-first endpoints return:
+
+```json
+{
+  "success": true,
+  "data": {},
+  "citations": [],
+  "warnings": [],
+  "metadata": {
+    "timestamp": "...",
+    "mode": "fast",
+    "providers_used": [],
+    "data_quality": "good",
+    "not_investment_advice": true,
+    "citations_available": true,
+    "citation_count": 1
+  }
+}
+```
 
 ## Market
 
@@ -101,11 +132,22 @@ curl -X POST "http://localhost:8000/api/screener/nl" \
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| POST | `/api/research` | Queue deep research |
+| POST | `/api/research` | Queue ticker-first or portfolio compatibility deep research |
 | GET | `/api/research` | List persisted research jobs |
 | GET | `/api/research/{id}` | Status/result |
 | GET | `/api/research/stream/{id}` | SSE status stream |
 | POST | `/api/research/stream` | Compatibility stream submit route |
+
+Ticker-first research request:
+
+```json
+{
+  "ticker": "NVDA",
+  "question": "Analyze Nvidia as a long-term AI infrastructure company.",
+  "window": "past_month",
+  "focus": ["fundamentals", "earnings", "filings", "news", "sentiment"]
+}
+```
 
 ## Validation Rules
 
@@ -114,3 +156,4 @@ curl -X POST "http://localhost:8000/api/screener/nl" \
 - unsupported: crypto, forex, international equities, OTC
 - dates: ISO `YYYY-MM-DD`
 - screener numeric bounds must be non-negative and min <= max
+- news windows: `today`, `past_day`, `past_week`, `past_month`; aliases: `1d`, `7d`, `30d`

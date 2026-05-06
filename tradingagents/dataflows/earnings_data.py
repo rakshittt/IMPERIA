@@ -13,6 +13,7 @@ import requests
 from pydantic import BaseModel, Field
 
 from tradingagents.cache.sqlite_cache import get_default_cache
+import tradingagents.dataflows.demo_provider as demo_provider
 
 logger = logging.getLogger(__name__)
 
@@ -125,6 +126,13 @@ def get_earnings_calendar(
     start = start_date or today.isoformat()
     end = end_date or (today + timedelta(days=30)).isoformat()
     selected = [ticker.upper().strip() for ticker in tickers or [] if ticker.strip()]
+    if demo_provider.is_demo_mode() and selected:
+        events = []
+        for ticker in selected:
+            demo = demo_provider.get_demo_earnings(ticker)
+            if demo and demo.get("next"):
+                events.append(EarningsEvent.model_validate(demo["next"]))
+        return events
     cache = get_default_cache()
     key = f"{start}:{end}:{','.join(selected)}"
     cached = cache.get("earnings_calendar", key)
@@ -206,6 +214,10 @@ def _yfinance_history(ticker: str, limit: int) -> list[EarningsSurprise]:
 
 def get_earnings_history(ticker: str, limit: int = 8) -> list[EarningsSurprise]:
     symbol = ticker.upper().strip()
+    if demo_provider.is_demo_mode():
+        demo = demo_provider.get_demo_earnings(symbol)
+        if demo:
+            return [EarningsSurprise.model_validate(item) for item in demo["history"][:limit]]
     cache = get_default_cache()
     key = f"{symbol}:{limit}"
     cached = cache.get("earnings_history", key)
@@ -241,6 +253,10 @@ def _yfinance_next_earnings(symbol: str) -> EarningsEvent | None:
 
 def get_next_earnings(ticker: str) -> EarningsEvent | None:
     symbol = ticker.upper().strip()
+    if demo_provider.is_demo_mode():
+        demo = demo_provider.get_demo_earnings(symbol)
+        if demo:
+            return EarningsEvent.model_validate(demo["next"])
     events = get_earnings_calendar(tickers=[symbol])
     future = [event for event in events if event.report_date]
     if future:

@@ -18,6 +18,7 @@ from tradingagents.dataflows.free_provider_fallbacks import (
     get_alpha_vantage_quote,
     get_finnhub_quote,
 )
+import tradingagents.dataflows.demo_provider as demo_provider
 from tradingagents.utils.validation import normalize_ticker
 
 logger = logging.getLogger(__name__)
@@ -196,6 +197,12 @@ def get_quote(ticker: str) -> QuoteData:
     """Return a cache-first quote with yfinance/Finnhub/Alpha Vantage fallbacks."""
 
     symbol = _normalize_market_symbol(ticker)
+    if demo_provider.is_demo_mode():
+        demo_quote = demo_provider.get_demo_quote(symbol)
+        if demo_quote:
+            logger.info("market_quote ticker=%s source=demo cache_hit=false", symbol)
+            return QuoteData.model_validate(demo_quote)
+
     cache = get_default_cache()
     cached = cache.get("quotes", symbol)
     if cached is not None:
@@ -310,6 +317,12 @@ def get_batch_quotes(tickers: list[str]) -> dict[str, QuoteData]:
             continue
         if symbol not in symbols:
             symbols.append(symbol)
+    if demo_provider.is_demo_mode():
+        return {
+            symbol: QuoteData.model_validate(quote)
+            for symbol in symbols
+            if (quote := demo_provider.get_demo_quote(symbol)) is not None
+        }
     result: dict[str, QuoteData] = {}
     for start in range(0, len(symbols), MAX_BATCH_QUOTES):
         result.update(_get_batch_quotes_chunk(symbols[start : start + MAX_BATCH_QUOTES]))
@@ -320,6 +333,10 @@ def get_ohlcv(ticker: str, period: str = "1y", interval: str = "1d") -> pd.DataF
     import yfinance as yf
 
     symbol = _normalize_market_symbol(ticker)
+    if demo_provider.is_demo_mode():
+        demo_frame = demo_provider.get_demo_ohlcv(symbol, periods=30 if period in {"1mo", "1d"} else 120)
+        if demo_frame is not None:
+            return demo_frame
     return _retry(lambda: yf.Ticker(symbol).history(period=period, interval=interval))
 
 
@@ -342,6 +359,9 @@ def get_market_indices() -> list[IndexData]:
 
 
 def load_universe(limit: int | None = None) -> list[str]:
+    if demo_provider.is_demo_mode():
+        symbols = demo_provider.demo_universe()
+        return symbols[:limit] if limit else symbols
     path = Path(__file__).resolve().parents[1] / "data" / "us_equity_universe.json"
     try:
         symbols = json.loads(path.read_text(encoding="utf-8"))

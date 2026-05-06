@@ -9,8 +9,10 @@ from fastapi.responses import HTMLResponse
 
 from tradingagents.api.middleware.cache_middleware import CacheMiddleware
 from tradingagents.api.middleware.rate_limiter import RateLimitMiddleware
+from tradingagents.api.middleware.request_id import RequestIDMiddleware
 from tradingagents.api.middleware.security import SecurityHeadersMiddleware
 from tradingagents.api.routes import ai, earnings, market, research, screener, search, stock, watchlist
+from tradingagents.dataflows.provider_registry import configured_provider_status
 
 load_dotenv()
 
@@ -27,6 +29,7 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(RequestIDMiddleware)
     app.add_middleware(RateLimitMiddleware)
     app.add_middleware(CacheMiddleware)
     app.add_middleware(SecurityHeadersMiddleware)
@@ -51,8 +54,15 @@ def create_app() -> FastAPI:
         return {
             "status": "ok",
             "product": "IMPERIA",
+            "tagline": "Source-cited AI research for US stocks.",
             "scope": "US equities and major US ETFs, free/open data sources",
         }
+
+    @app.get("/api/health/providers")
+    async def provider_health():
+        payload = configured_provider_status()
+        payload["status"] = "ok"
+        return payload
 
     return app
 

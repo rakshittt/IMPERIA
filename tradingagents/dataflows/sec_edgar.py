@@ -15,6 +15,7 @@ from typing import Any
 import requests
 
 from tradingagents.cache.sqlite_cache import DEFAULT_TTLS, SQLiteCache, get_default_cache
+import tradingagents.dataflows.demo_provider as demo_provider
 
 logger = logging.getLogger(__name__)
 
@@ -197,6 +198,8 @@ def get_cik_for_ticker(ticker: str) -> str:
     """Resolve a supported US ticker to a zero-padded 10-digit CIK."""
 
     symbol = _normalize_ticker(ticker)
+    if demo_provider.is_demo_mode() and symbol in demo_provider.demo_universe():
+        return f"{1_000_000 + demo_provider.demo_universe().index(symbol):010d}"
     for entry in load_sec_ticker_universe():
         if entry["ticker"] == symbol:
             return f"{int(entry['cik']):010d}"
@@ -258,6 +261,8 @@ def get_sec_filings(
 ) -> list[dict[str, Any]]:
     """Return recent SEC filings, optionally filtered by form type."""
 
+    if demo_provider.is_demo_mode():
+        return demo_provider.get_demo_filings(ticker, filing_type=filing_type, limit=limit)
     cik = get_cik_for_ticker(ticker)
     filings = _normalize_recent_filings(get_company_submissions(ticker), cik)
     if filing_type:
@@ -274,6 +279,17 @@ def get_sec_filings(
 def get_companyfacts(ticker: str) -> dict[str, Any]:
     """Fetch raw SEC XBRL company facts for a supported ticker."""
 
+    if demo_provider.is_demo_mode():
+        symbol = _normalize_ticker(ticker)
+        metrics = demo_provider.get_demo_metrics(symbol)
+        if metrics:
+            return {
+                "cik": int(get_cik_for_ticker(symbol)),
+                "entityName": metrics.get("profile", {}).get("name", symbol),
+                "facts": {},
+                "source": demo_provider.DEMO_SOURCE,
+                "warnings": [demo_provider.DEMO_WARNING],
+            }
     cik = get_cik_for_ticker(ticker)
     return _request_json(
         f"{SEC_DATA_BASE}/api/xbrl/companyfacts/CIK{cik}.json",
@@ -371,6 +387,29 @@ def _extract_statement(facts: dict[str, Any], annual: bool) -> dict[str, Any]:
 def get_xbrl_financials(ticker: str) -> dict[str, Any]:
     """Return normalized SEC XBRL financial facts for annual and quarterly periods."""
 
+    if demo_provider.is_demo_mode():
+        symbol = _normalize_ticker(ticker)
+        metrics = demo_provider.get_demo_metrics(symbol)
+        if metrics:
+            cik = get_cik_for_ticker(symbol)
+            return {
+                "ticker": symbol,
+                "cik": cik,
+                "entity_name": metrics.get("profile", {}).get("name", symbol),
+                "annual": {
+                    "revenue": {"value": metrics.get("ttm", {}).get("revenue"), "unit": "USD", "concept": "DemoRevenue"},
+                    "net_income": {"value": metrics.get("ttm", {}).get("net_income"), "unit": "USD", "concept": "DemoNetIncome"},
+                    "assets": {"value": metrics.get("balance_sheet_snapshot", {}).get("assets"), "unit": "USD", "concept": "DemoAssets"},
+                    "stockholders_equity": {"value": metrics.get("balance_sheet_snapshot", {}).get("equity"), "unit": "USD", "concept": "DemoEquity"},
+                },
+                "quarterly": {},
+                "source": {
+                    "type": "IMPERIA demo XBRL companyfacts",
+                    "url": f"https://example.com/imperia-demo/sec/{symbol.lower()}",
+                    "fetched_at": _now_iso(),
+                },
+                "warnings": [demo_provider.DEMO_WARNING],
+            }
     facts = get_companyfacts(ticker)
     cik = f"{int(facts.get('cik', get_cik_for_ticker(ticker))):010d}"
     return {

@@ -1,0 +1,27 @@
+### Health
+GET http://localhost:8000/api/health
+
+### Provider health
+GET http://localhost:8000/api/health/providers
+
+### What happened
+GET http://localhost:8000/api/stock/NVDA/what-happened?window=today
+
+### Sentiment
+GET http://localhost:8000/api/stock/NVDA/sentiment?window=past_week
+
+### Research snapshot
+GET http://localhost:8000/api/stock/AAPL/research-snapshot
+
+### Stock-first ask
+POST http://localhost:8000/api/ask
+Content-Type: application/json
+
+{"ticker":"AAPL","query":"What happened to Apple today?"}
+
+### Ticker-first deep research
+POST http://localhost:8000/api/research
+Content-Type: application/json
+
+{"ticker":"NVDA","question":"Analyze Nvidia as a long-term AI infrastructure company.","window":"past_month","focus":["fundamentals","earnings","filings","news","sentiment"]}
+

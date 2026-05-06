@@ -1,10 +1,14 @@
 # IMPERIA
 
-**IMPERIA** is a research-grade US stock intelligence backend. It combines fast market answers with the existing TradingAgents multi-agent deep research engine, using free/open data sources first and DeepSeek for synthesis.
+**IMPERIA** is an open-source AI research assistant backend for US stocks.
+
+Tagline: **IMPERIA — Source-cited AI research for US stocks.**
+
+It helps a user select a US-listed stock, understand what is happening, inspect the supporting data, and generate source-cited fast answers or deep multi-agent research reports. The product principle is **Data first. AI second.**
 
 The internal Python package is still named `tradingagents` so existing imports and tests keep working. The product, API, docs, and deployment surface are now organized around **IMPERIA**.
 
-> Financial disclaimer: IMPERIA is for research and education. It does not provide personalized financial advice, trade execution, or automated portfolio management.
+> Financial disclaimer: IMPERIA is for educational research only. It does not provide investment advice, personalized financial recommendations, buy/sell/hold instructions, trade execution, or automated portfolio management.
 
 ## What IMPERIA Can Do
 
@@ -12,7 +16,7 @@ IMPERIA supports **US-listed equities and major US ETFs only**.
 
 It can:
 
-- Answer fast questions such as “What is Apple’s P/E?”, “Why is NVDA moving?”, “Show market movers”, or “When is Tesla’s next earnings?”
+- Answer stock-specific questions such as “Why is NVDA moving today?”, “What happened to Apple this week?”, “What risks did AMD mention?”, or “What should I watch before Nvidia earnings?”
 - Resolve ticker/company searches such as `Apple -> AAPL`.
 - Fetch quotes, batch quotes, OHLCV charts, intraday data, index snapshots, sector ETF performance, market movers, and market breadth.
 - Fetch and normalize SEC EDGAR data: ticker-to-CIK, recent filings, 10-K/10-Q/8-K/Form 4/13F lists, company facts, and XBRL financials.
@@ -22,6 +26,8 @@ It can:
 - Run structured and natural-language stock screeners over a bundled free US equity universe.
 - Persist watchlists, portfolio snapshots, and research job results in SQLite.
 - Queue deep research jobs in a lightweight background thread pool.
+- Run in deterministic demo mode for presentations without external APIs.
+- Add optional read-only Polymarket-derived prediction-market sentiment when enabled.
 - Run the TradingAgents deep-research graph with market, fundamentals, news, social, SEC filings, macro, earnings, bull/bear debate, risk, trader, and portfolio-manager agents.
 
 ## How It Works
@@ -30,6 +36,10 @@ It can:
 Client / API caller
   -> FastAPI app: api.py -> tradingagents.api.main
   -> Routes: stock, market, search, earnings, screener, watchlist, ai, research
+  -> Stock-first flow:
+       selected ticker + question
+       -> quote/news/metrics/filings/earnings/sentiment/citations
+       -> fast answer or queued deep research report
   -> Fast mode:
        query_router -> fast_query
        -> market_data/news_aggregator/earnings_data/sec_edgar/computed_metrics
@@ -101,13 +111,18 @@ curl "http://localhost:8000/api/search?q=Apple"
 curl "http://localhost:8000/api/stock/AAPL/profile"
 curl "http://localhost:8000/api/stock/AAPL/ratios"
 curl "http://localhost:8000/api/stock/AAPL/news"
+curl "http://localhost:8000/api/stock/AAPL/what-happened?window=today"
+curl "http://localhost:8000/api/stock/AAPL/sentiment"
+curl "http://localhost:8000/api/stock/AAPL/research-snapshot"
+curl "http://localhost:8000/api/stock/AAPL/investor-checklist"
+curl "http://localhost:8000/api/compare?ticker_a=AMD&ticker_b=NVDA"
 curl "http://localhost:8000/api/stock/AAPL/next-earnings"
 curl "http://localhost:8000/api/market/summary"
 curl "http://localhost:8000/api/market/movers"
 curl "http://localhost:8000/api/market/breadth"
 curl -X POST "http://localhost:8000/api/ask" \
   -H "Content-Type: application/json" \
-  -d '{"query":"What is Apple P/E ratio?"}'
+  -d '{"ticker":"AAPL","query":"What happened to Apple today?"}'
 curl -X POST "http://localhost:8000/api/screener/nl" \
   -H "Content-Type: application/json" \
   -d '{"query":"profitable technology stocks with P/E under 25"}'
@@ -118,7 +133,13 @@ Queue deep research:
 ```bash
 curl -X POST "http://localhost:8000/api/research" \
   -H "Content-Type: application/json" \
-  -d '{"portfolio":[{"ticker":"AAPL","weight":0.6},{"ticker":"MSFT","weight":0.4}]}'
+  -d '{"ticker":"NVDA","question":"Analyze Nvidia as a long-term AI infrastructure company.","window":"past_month","focus":["fundamentals","earnings","filings","news","sentiment"]}'
+```
+
+Demo mode for presentations:
+
+```bash
+IMPERIA_DEMO_MODE=true uvicorn api:app --reload
 ```
 
 ## Tests
@@ -130,7 +151,7 @@ pytest -q
 Current expected baseline:
 
 ```text
-122 passed, 42 subtests passed
+131 passed, 42 subtests passed
 ```
 
 ## Live Smoke Test
@@ -148,6 +169,10 @@ python scripts/smoke_test.py
 - [API Reference](docs/API.md)
 - [Developer Guide](docs/DEVELOPER_GUIDE.md)
 - [Project Structure](docs/PROJECT_STRUCTURE.md)
+- [Demo Mode](docs/DEMO_MODE.md)
+- [Safety And Limitations](docs/SAFETY_AND_LIMITATIONS.md)
+- [Sentiment](docs/SENTIMENT.md)
+- [Polymarket Provider](docs/POLYMARKET_PROVIDER.md)
 - [Free US Finance Backend Notes](docs/backend_free_us_finance.md)
 
 ## Data Sources
@@ -161,6 +186,7 @@ Primary/free sources:
 - FMP/Twelve Data/EODHD only through already-configured free-tier-safe paths
 - NewsAPI, NewsData, TheNewsAPI
 - Tavily web search when configured
+- Optional read-only Polymarket public endpoints when enabled
 
 IMPERIA does not introduce paid data dependencies.
 

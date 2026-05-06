@@ -1,0 +1,7 @@
+{
+  "AAPL": [{"filing_type": "10-Q", "filing_date": "2026-05-02", "summary": "Sample filing: revenue mix, services margins, and supply-chain risks remain key watch items."}],
+  "MSFT": [{"filing_type": "10-Q", "filing_date": "2026-04-25", "summary": "Sample filing: cloud demand, AI capex, cybersecurity, and regulatory risk are highlighted."}],
+  "NVDA": [{"filing_type": "10-Q", "filing_date": "2026-05-28", "summary": "Sample filing: data-center concentration, supply, export controls, and customer demand volatility are key risks."}],
+  "TSLA": [{"filing_type": "10-Q", "filing_date": "2026-04-23", "summary": "Sample filing: EV pricing, production ramp, energy storage, and regulatory credit volatility are key risks."}],
+  "AMD": [{"filing_type": "10-Q", "filing_date": "2026-05-07", "summary": "Sample filing: AI accelerator execution, foundry supply, and customer concentration remain watch items."}]
+}

@@ -10,6 +10,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 from tradingagents.default_config import DEFAULT_CONFIG
+from tradingagents.dataflows.demo_provider import get_demo_research_report, is_demo_mode
 from tradingagents.persistence.portfolio import persist_research_result
 
 load_dotenv()
@@ -53,7 +54,33 @@ def get_trading_graph():
 
 def normalize_research_result(final_state: dict[str, Any], research_id: str | None = None) -> dict[str, Any]:
     rid = research_id or str(uuid.uuid4())[:8]
-    result = {"id": rid, "status": "completed"}
+    holdings = final_state.get("user_portfolio", []) or []
+    ticker = holdings[0].get("ticker") if holdings else None
+    result = {
+        "id": rid,
+        "research_id": rid,
+        "status": "completed",
+        "ticker": ticker,
+        "topic": ticker,
+        "generated_at": datetime.utcnow().isoformat() + "Z",
+        "executive_summary": final_state.get("final_portfolio_feedback", "") or final_state.get("research_synthesis", ""),
+        "what_happened_recently": final_state.get("market_report", ""),
+        "company_overview": final_state.get("fundamentals_report", ""),
+        "market_snapshot": final_state.get("market_report", ""),
+        "financial_analysis": final_state.get("fundamentals_report", ""),
+        "earnings_analysis": final_state.get("earnings_report", {}),
+        "sec_filing_insights": final_state.get("sec_filings_report", {}),
+        "news_context": final_state.get("news_report", ""),
+        "prediction_market_sentiment": final_state.get("sentiment_report", ""),
+        "bull_thesis": final_state.get("bullish_research", ""),
+        "bear_thesis": final_state.get("bearish_research", ""),
+        "key_risks": final_state.get("risk_report", ""),
+        "what_to_watch_next": final_state.get("trader_report", ""),
+        "data_quality_warnings": [],
+        "citations": [],
+        "agent_outputs": {},
+        "not_investment_advice": True,
+    }
     for stage in RESEARCH_STAGES:
         result[stage] = final_state.get(stage, "")
     research_store[rid] = result
@@ -67,6 +94,15 @@ def run_deep_research(
     profile: dict[str, Any] | None = None,
     research_id: str | None = None,
 ) -> dict[str, Any]:
+    if is_demo_mode() and portfolio:
+        ticker = str(portfolio[0].get("ticker", "")).upper()
+        demo = get_demo_research_report(ticker)
+        if demo:
+            rid = research_id or str(uuid.uuid4())[:8]
+            result = {"id": rid, "research_id": rid, **demo, "status": "completed", "not_investment_advice": True}
+            research_store[rid] = result
+            persist_research_result(rid, result, status="completed")
+            return result
     graph = get_trading_graph()
     final_state, _feedback = graph.analyze_portfolio(
         portfolio,

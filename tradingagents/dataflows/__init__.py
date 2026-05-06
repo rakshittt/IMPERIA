@@ -1,6 +1,7 @@
 from .financial_knowledge_brain import FinancialKnowledgeBrain
 from .news_knowledge_brain import NewsKnowledgeBrain
 from .computed_metrics import compute_financial_metrics, get_structured_ratios
+from .demo_provider import is_demo_mode, demo_universe
 from .free_provider_fallbacks import (
     get_provider_profile_fallback,
     get_provider_quote_fallback,
@@ -21,6 +22,8 @@ __all__ = [
     "FinancialKnowledgeBrain",
     "NewsKnowledgeBrain",
     "compute_financial_metrics",
+    "is_demo_mode",
+    "demo_universe",
     "get_structured_ratios",
     "get_provider_quote_fallback",
     "get_provider_profile_fallback",

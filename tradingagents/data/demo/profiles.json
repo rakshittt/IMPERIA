@@ -1,0 +1,9 @@
+{
+  "AAPL": {"name": "Apple Inc.", "sector": "Technology", "industry": "Consumer Electronics"},
+  "MSFT": {"name": "Microsoft Corporation", "sector": "Technology", "industry": "Software - Infrastructure"},
+  "NVDA": {"name": "NVIDIA Corporation", "sector": "Technology", "industry": "Semiconductors"},
+  "TSLA": {"name": "Tesla, Inc.", "sector": "Consumer Cyclical", "industry": "Auto Manufacturers"},
+  "AMD": {"name": "Advanced Micro Devices, Inc.", "sector": "Technology", "industry": "Semiconductors"},
+  "SPY": {"name": "SPDR S&P 500 ETF Trust", "sector": "ETF", "industry": "Large Cap Blend"},
+  "QQQ": {"name": "Invesco QQQ Trust", "sector": "ETF", "industry": "Large Cap Growth"}
+}

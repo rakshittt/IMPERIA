@@ -49,6 +49,7 @@ include = ["tradingagents*", "cli*"]
 
 [tool.setuptools.package-data]
 cli = ["static/*"]
+tradingagents = ["data/*.json", "data/demo/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

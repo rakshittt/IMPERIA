@@ -1,0 +1,19 @@
+{
+  "AAPL": [
+    {"title": "Apple demo brief: services growth offsets hardware caution", "summary": "Sample demo story showing services momentum and iPhone demand debate.", "sentiment_label": "mixed"},
+    {"title": "Apple demo brief: investors watch margin and AI device updates", "summary": "Sample demo story focused on margins, capital returns, and product-cycle expectations.", "sentiment_label": "neutral"}
+  ],
+  "MSFT": [
+    {"title": "Microsoft demo brief: cloud and AI spending remain central", "summary": "Sample demo story covering Azure growth and AI infrastructure demand.", "sentiment_label": "bullish"}
+  ],
+  "NVDA": [
+    {"title": "Nvidia demo brief: AI chip demand drives market attention", "summary": "Sample demo story covering data-center demand, supply constraints, and valuation debate.", "sentiment_label": "bullish"},
+    {"title": "Nvidia demo brief: export controls remain a risk to watch", "summary": "Sample demo story highlighting regulatory and geopolitical risk.", "sentiment_label": "bearish"}
+  ],
+  "TSLA": [
+    {"title": "Tesla demo brief: deliveries and margins shape investor debate", "summary": "Sample demo story covering EV demand, price competition, and energy storage.", "sentiment_label": "mixed"}
+  ],
+  "AMD": [
+    {"title": "AMD demo brief: AI accelerator roadmap stays in focus", "summary": "Sample demo story covering GPU competition, data-center growth, and execution risk.", "sentiment_label": "bullish"}
+  ]
+}

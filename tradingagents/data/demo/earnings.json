@@ -1,0 +1,7 @@
+{
+  "AAPL": {"next": {"report_date": "2026-07-30", "estimated_eps": 1.54}, "history": [{"period": "2026Q1", "actual_eps": 1.65, "estimated_eps": 1.58, "surprise_pct": 4.4, "beat_miss": "beat"}]},
+  "MSFT": {"next": {"report_date": "2026-07-23", "estimated_eps": 3.21}, "history": [{"period": "2026Q1", "actual_eps": 3.35, "estimated_eps": 3.12, "surprise_pct": 7.4, "beat_miss": "beat"}]},
+  "NVDA": {"next": {"report_date": "2026-08-26", "estimated_eps": 0.91}, "history": [{"period": "2026Q1", "actual_eps": 0.97, "estimated_eps": 0.88, "surprise_pct": 10.2, "beat_miss": "beat"}]},
+  "TSLA": {"next": {"report_date": "2026-07-22", "estimated_eps": 0.61}, "history": [{"period": "2026Q1", "actual_eps": 0.56, "estimated_eps": 0.60, "surprise_pct": -6.7, "beat_miss": "miss"}]},
+  "AMD": {"next": {"report_date": "2026-07-28", "estimated_eps": 0.83}, "history": [{"period": "2026Q1", "actual_eps": 0.87, "estimated_eps": 0.81, "surprise_pct": 7.4, "beat_miss": "beat"}]}
+}

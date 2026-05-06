@@ -1,0 +1,9 @@
+{
+  "AAPL": {"price": 196.25, "change_pct": 0.84, "volume": 51800000, "market_cap": 3010000000000},
+  "MSFT": {"price": 442.10, "change_pct": 0.52, "volume": 24700000, "market_cap": 3280000000000},
+  "NVDA": {"price": 121.45, "change_pct": 2.15, "volume": 192400000, "market_cap": 2990000000000},
+  "TSLA": {"price": 238.80, "change_pct": -1.25, "volume": 93400000, "market_cap": 760000000000},
+  "AMD": {"price": 156.35, "change_pct": 1.48, "volume": 64100000, "market_cap": 253000000000},
+  "SPY": {"price": 524.20, "change_pct": 0.38, "volume": 72100000, "market_cap": null},
+  "QQQ": {"price": 452.90, "change_pct": 0.61, "volume": 50800000, "market_cap": null}
+}

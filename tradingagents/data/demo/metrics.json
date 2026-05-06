@@ -1,0 +1,7 @@
+{
+  "AAPL": {"pe": 30.5, "forward_pe": 27.8, "eps": 6.43, "revenue_growth": 0.04, "gross_margin": 0.46, "operating_margin": 0.31, "net_margin": 0.25, "roe": 1.45, "roa": 0.28, "debt_to_equity": 145.0, "current_ratio": 0.95, "quick_ratio": 0.87, "free_cash_flow_margin": 0.24, "ev_to_ebitda": 23.2},
+  "MSFT": {"pe": 36.2, "forward_pe": 31.5, "eps": 12.20, "revenue_growth": 0.15, "gross_margin": 0.69, "operating_margin": 0.44, "net_margin": 0.36, "roe": 0.37, "roa": 0.18, "debt_to_equity": 32.0, "current_ratio": 1.25, "quick_ratio": 1.15, "free_cash_flow_margin": 0.29, "ev_to_ebitda": 25.6},
+  "NVDA": {"pe": 49.8, "forward_pe": 36.7, "eps": 2.44, "revenue_growth": 1.22, "gross_margin": 0.74, "operating_margin": 0.62, "net_margin": 0.53, "roe": 0.93, "roa": 0.48, "debt_to_equity": 22.0, "current_ratio": 4.1, "quick_ratio": 3.6, "free_cash_flow_margin": 0.47, "ev_to_ebitda": 38.4},
+  "TSLA": {"pe": 63.1, "forward_pe": 54.2, "eps": 3.78, "revenue_growth": 0.02, "gross_margin": 0.18, "operating_margin": 0.08, "net_margin": 0.07, "roe": 0.13, "roa": 0.07, "debt_to_equity": 18.0, "current_ratio": 1.7, "quick_ratio": 1.1, "free_cash_flow_margin": 0.03, "ev_to_ebitda": 42.5},
+  "AMD": {"pe": 44.9, "forward_pe": 31.2, "eps": 3.48, "revenue_growth": 0.18, "gross_margin": 0.51, "operating_margin": 0.15, "net_margin": 0.10, "roe": 0.09, "roa": 0.06, "debt_to_equity": 5.0, "current_ratio": 2.5, "quick_ratio": 1.8, "free_cash_flow_margin": 0.11, "ev_to_ebitda": 29.7}
+}

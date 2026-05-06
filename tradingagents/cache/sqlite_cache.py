@@ -38,6 +38,9 @@ DEFAULT_TTLS: dict[str, int] = {
     "earnings_calendar": 60 * 60,
     "earnings_history": 6 * 60 * 60,
     "screener_metrics": 6 * 60 * 60,
+    "polymarket_sentiment": 5 * 60,
+    "stock_sentiment": 5 * 60,
+    "stock_research": 5 * 60,
     "research_status": 15,
     "api_response": 15,
 }

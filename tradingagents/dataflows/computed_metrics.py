@@ -7,6 +7,8 @@ from typing import Any
 
 import pandas as pd
 
+import tradingagents.dataflows.demo_provider as demo_provider
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,6 +63,10 @@ def compute_financial_metrics(ticker: str, *, include_sec_fallback: bool = True)
 
     warnings: list[str] = []
     symbol = ticker.upper().strip()
+    if demo_provider.is_demo_mode():
+        demo_metrics = demo_provider.get_demo_metrics(symbol)
+        if demo_metrics:
+            return demo_metrics
     try:
         import yfinance as yf
 
@@ -151,6 +157,23 @@ def compute_financial_metrics(ticker: str, *, include_sec_fallback: bool = True)
         "free_cash_flow_margin": _ratio(free_cash_flow_ttm, revenue_ttm),
         "ev_to_ebitda": _info_value(info, ["enterpriseToEbitda"]) or _ratio(enterprise_value, ebitda),
     }
+    formulas = {
+        "pe": "market_cap / trailing_twelve_month_net_income",
+        "forward_pe": "provider forward P/E estimate when available",
+        "gross_margin": "ttm_gross_profit / ttm_revenue",
+        "operating_margin": "ttm_operating_income / ttm_revenue",
+        "net_margin": "ttm_net_income / ttm_revenue",
+        "roe": "ttm_net_income / stockholders_equity",
+        "roa": "ttm_net_income / total_assets",
+        "debt_to_equity": "total_debt / stockholders_equity",
+        "current_ratio": "current_assets / current_liabilities",
+        "quick_ratio": "(current_assets - inventory) / current_liabilities",
+        "free_cash_flow_margin": "ttm_free_cash_flow / ttm_revenue",
+        "ev_to_ebitda": "enterprise_value / EBITDA",
+    }
+    missing = [name for name, value in metrics.items() if value is None]
+    if missing:
+        warnings.append("Unavailable metric inputs: " + ", ".join(sorted(missing)) + ".")
     ttm = {
         "revenue": revenue_ttm,
         "gross_profit": gross_profit_ttm,
@@ -172,8 +195,8 @@ def compute_financial_metrics(ticker: str, *, include_sec_fallback: bool = True)
             }.items()
             if value is not None
         },
-        "metrics": {key: value for key, value in metrics.items() if value is not None},
-        "ttm": {key: value for key, value in ttm.items() if value is not None},
+        "metrics": metrics,
+        "ttm": ttm,
         "balance_sheet_snapshot": {
             key: value
             for key, value in {
@@ -188,6 +211,16 @@ def compute_financial_metrics(ticker: str, *, include_sec_fallback: bool = True)
         },
         "warnings": warnings,
         "sources": ["yfinance", "SEC XBRL fallback" if include_sec_fallback else ""],
+        "formula_metadata": formulas,
+        "citations": [
+            {
+                "source_type": "market_data",
+                "provider": "yfinance",
+                "title": f"{symbol} financial statements via yfinance",
+                "url": f"https://finance.yahoo.com/quote/{symbol}/financials",
+                "ticker": symbol,
+            }
+        ],
     }
 
 

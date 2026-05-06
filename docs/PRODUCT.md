@@ -2,10 +2,10 @@
 
 ## What IMPERIA Is
 
-IMPERIA is a backend intelligence system for US stocks and major US ETFs. It is built to feel closer to a financial answer engine than a simple market-data wrapper:
+IMPERIA is an open-source AI research assistant backend for US stocks and major US ETFs. It is built around a stock-first flow: select a ticker, ask what is happening, gather real data and citations, then synthesize an educational research answer.
 
 - fast enough for common quote/news/ratio/market questions
-- deep enough for multi-agent portfolio research
+- deep enough for multi-agent single-stock research reports
 - structured enough for a future frontend, mobile app, or internal dashboard
 - free-source-first, with clear warnings when data is missing or rate-limited
 
@@ -15,7 +15,7 @@ Primary users:
 
 - individual researchers who want fast US equity intelligence
 - developers building a Perplexity Finance-style product
-- analysts who want a repeatable backend for portfolio research
+- students, professors, recruiters, and reviewers evaluating a serious capstone backend
 
 ## Product Modes
 
@@ -33,18 +33,18 @@ Best for:
 - market summary
 - movers and breadth
 - quick “why is this stock moving?” questions
+- stock sentiment, what-happened, risks, bull/bear, filing brief, earnings brief, and research checklist endpoints
 
 ### Deep Research Mode
 
-Deep mode queues a background job and runs the TradingAgents graph. It uses analyst reports, specialist reports, bull/bear debate, risk synthesis, trader assessment, and portfolio manager feedback.
+Deep mode queues a background job and runs the TradingAgents graph. It now accepts a ticker-first request without portfolio details and internally adapts that ticker into the existing graph.
 
 Best for:
 
-- portfolio review
 - long-term thesis work
 - bull vs bear research
 - risk analysis
-- investment committee-style summaries
+- expert-style source-cited stock reports
 
 ## Data Philosophy
 
@@ -55,6 +55,7 @@ IMPERIA uses free/open data sources first:
 - free-tier Finnhub and Alpha Vantage fallbacks
 - free-tier news providers when configured
 - DeepSeek only for synthesis, routing, and NLP parsing
+- optional read-only Polymarket public data for prediction-market sentiment when enabled
 
 No paid market-data dependency is introduced by the backend.
 
@@ -67,3 +68,4 @@ No paid market-data dependency is introduced by the backend.
 - Full 13F ownership aggregation is not equivalent to paid ownership feeds
 - background jobs are process-local, though status and results persist to SQLite
 - no frontend is shipped right now
+- no personalized buy/sell/hold or allocation advice is provided

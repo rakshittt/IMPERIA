@@ -1,0 +1,7 @@
+{
+  "AAPL": {"executive_summary": "Demo research report: Apple remains a high-quality platform company; key research questions are hardware growth, services durability, AI device strategy, and valuation."},
+  "MSFT": {"executive_summary": "Demo research report: Microsoft combines cloud scale, enterprise distribution, and AI optionality; capex intensity and regulatory scrutiny are key risks."},
+  "NVDA": {"executive_summary": "Demo research report: Nvidia benefits from AI infrastructure demand; valuation, supply concentration, export restrictions, and customer capex cycles are the main watch items."},
+  "TSLA": {"executive_summary": "Demo research report: Tesla’s research debate centers on EV demand, margins, autonomy optionality, energy storage, and execution risk."},
+  "AMD": {"executive_summary": "Demo research report: AMD’s case depends on data-center CPU resilience, AI accelerator execution, and margin expansion."}
+}
