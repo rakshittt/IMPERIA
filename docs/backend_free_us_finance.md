@@ -1,8 +1,8 @@
-# Free US Finance Backend Notes
+# IMPERIA Free US Finance Backend Notes
 
 ## Architecture
 
-TradingAgents exposes a two-tier backend for US-listed equities and major US ETFs only.
+IMPERIA exposes a two-tier backend for US-listed equities and major US ETFs only.
 
 - Tier 1 fast query uses yfinance, SEC EDGAR, computed ratios, search resolution, SQLite caching, news/earnings aggregation, and structured citations.
 - Tier 2 deep research preserves the existing `TradingAgentsGraph.analyze_portfolio` multi-agent workflow.
@@ -42,7 +42,7 @@ Paid-only feeds such as Bloomberg, FactSet, S&P Global paid feeds, Morningstar p
 Set `SEC_USER_AGENT` in production so SEC requests identify your app/operator.
 
 ```bash
-SEC_USER_AGENT="TradingAgents/0.2.4 contact=you@example.com"
+SEC_USER_AGENT="IMPERIA/0.3.0 contact=you@example.com"
 TRADINGAGENTS_SQLITE_CACHE="$HOME/.tradingagents/cache/backend_cache.sqlite3"
 TRADINGAGENTS_API_RATE_LIMIT=120
 TRADINGAGENTS_API_CACHE_TTL=15

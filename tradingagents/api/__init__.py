@@ -1,4 +1,4 @@
-"""TradingAgents backend API package."""
+"""IMPERIA backend API package."""
 
 from .main import app, create_app
 

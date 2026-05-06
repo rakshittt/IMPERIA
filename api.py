@@ -1,4 +1,4 @@
-"""Compatibility shim for existing ``uvicorn api:app`` workflows."""
+"""IMPERIA compatibility shim for existing ``uvicorn api:app`` workflows."""
 
 from tradingagents.api.main import app, create_app
 

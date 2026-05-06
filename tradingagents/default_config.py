@@ -12,7 +12,7 @@ DEFAULT_CONFIG = {
     ),
     "sec_user_agent": os.getenv(
         "SEC_USER_AGENT",
-        "TradingAgents/0.2.4 contact=dev@example.com",
+        "IMPERIA/0.3.0 contact=dev@example.com",
     ),
     "fast_query_enabled": True,
     "api_rate_limit_per_minute": int(os.getenv("TRADINGAGENTS_API_RATE_LIMIT", "120")),

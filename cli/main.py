@@ -37,8 +37,8 @@ from cli.stats_handler import StatsCallbackHandler
 console = Console()
 
 app = typer.Typer(
-    name="TradingAgents",
-    help="TradingAgents CLI: Multi-Agent Portfolio Research Framework",
+    name="IMPERIA",
+    help="IMPERIA CLI: US equity intelligence and multi-agent portfolio research",
     add_completion=True,  # Enable shell completion
 )
 
@@ -257,9 +257,9 @@ def update_display(layout, spinner_text=None, stats_handler=None, start_time=Non
     # Header with welcome message
     layout["header"].update(
         Panel(
-            "[bold green]Welcome to TradingAgents CLI[/bold green]\n"
-            "[dim]© [Tauric Research](https://github.com/TauricResearch)[/dim]",
-            title="Welcome to TradingAgents",
+            "[bold green]Welcome to IMPERIA CLI[/bold green]\n"
+            "[dim]Backend-first US equity intelligence[/dim]",
+            title="Welcome to IMPERIA",
             border_style="green",
             padding=(1, 2),
             expand=True,
@@ -467,11 +467,11 @@ def get_user_selections():
 
     # Create welcome box content
     welcome_content = f"{welcome_ascii}\n"
-    welcome_content += "[bold green]TradingAgents: Multi-Agent Portfolio Research Framework - CLI[/bold green]\n\n"
+    welcome_content += "[bold green]IMPERIA: US Equity Intelligence Backend - CLI[/bold green]\n\n"
     welcome_content += "[bold]Workflow Steps:[/bold]\n"
     welcome_content += "I. Analyst Team → II. Research Team → III. Risk Management → IV. Portfolio Feedback\n\n"
     welcome_content += (
-        "[dim]Built by [Tauric Research](https://github.com/TauricResearch)[/dim]"
+        "[dim]Built for Project IMPERIA[/dim]"
     )
 
     # Create and center the welcome box
@@ -479,7 +479,7 @@ def get_user_selections():
         welcome_content,
         border_style="green",
         padding=(1, 2),
-        title="Welcome to TradingAgents",
+        title="Welcome to IMPERIA",
         subtitle="Multi-Agent Portfolio Research Framework",
     )
     console.print(Align.center(welcome_box))

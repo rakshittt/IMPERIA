@@ -220,12 +220,13 @@ __marimo__/
 # Cache
 .tradingagents_data/
 **/data_cache/
+frontend-next/
+node_modules/
+.next/
 
-# Jetro and Editor configs
-.jetro/canvases/**/*.history/
-.jetro/notes/
-.jetro/context.json
-.jetro/trouble.json
-.jetro/live-server.json
+# Local assistant/editor/project configs
+.agents/
+.claude/
+.jetro/
 .cursor/
 .mcp.json

@@ -24,4 +24,4 @@ WORKDIR /home/appuser/app
 
 COPY --from=builder --chown=appuser:appuser /build .
 
-ENTRYPOINT ["tradingagents"]
+CMD ["uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]
