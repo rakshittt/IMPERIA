@@ -27,7 +27,7 @@ It can:
 - Persist watchlists, portfolio snapshots, and research job results in SQLite.
 - Queue deep research jobs in a lightweight background thread pool.
 - Run in deterministic demo mode for presentations without external APIs.
-- Add optional read-only Polymarket-derived prediction-market sentiment when enabled.
+- Add read-only Polymarket-derived prediction-market sentiment as part of stock sentiment when relevant markets exist.
 - Run the TradingAgents deep-research graph with market, fundamentals, news, social, SEC filings, macro, earnings, bull/bear debate, risk, trader, and portfolio-manager agents.
 
 ## How It Works
@@ -186,7 +186,7 @@ Primary/free sources:
 - FMP/Twelve Data/EODHD only through already-configured free-tier-safe paths
 - NewsAPI, NewsData, TheNewsAPI
 - Tavily web search when configured
-- Optional read-only Polymarket public endpoints when enabled
+- Read-only Polymarket public endpoints for prediction-market sentiment
 
 IMPERIA does not introduce paid data dependencies.
 

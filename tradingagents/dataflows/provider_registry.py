@@ -84,12 +84,12 @@ def configured_provider_status() -> dict[str, Any]:
         "sec_user_agent": "configured" if os.getenv("SEC_USER_AGENT") else "default_safe_fallback",
         "optional_providers": providers,
         "polymarket": {
-            "enabled": os.getenv("IMPERIA_ENABLE_POLYMARKET", "false").lower() in {"1", "true", "yes", "on"},
+            "enabled": True,
             "mode": "read_only_public_endpoints",
+            "required_api_key": False,
         },
         "cache_path": os.getenv("TRADINGAGENTS_SQLITE_CACHE", DEFAULT_CONFIG.get("sqlite_cache_path")),
         "warnings": []
         if os.getenv("SEC_USER_AGENT")
         else [f"SEC_USER_AGENT not set; using safe default {sec_user_agent!r}."],
     }
-

@@ -12,7 +12,7 @@ Client
 
 Stock-first path:
   selected ticker + question
-    -> quote, price move, metrics, filings, earnings, news, sector context, optional Polymarket
+    -> quote, price move, metrics, filings, earnings, news, sector context, Polymarket
     -> citations and warnings
     -> fast answer or queued deep report
 
@@ -82,7 +82,7 @@ Portfolio Manager
 | Earnings | Finnhub | yfinance |
 | Ratios | yfinance statements | SEC XBRL fallback |
 | Demo | local deterministic fixtures | no external call required |
-| Sentiment | price/news/earnings/sector | optional read-only Polymarket |
+| Sentiment | price/news/earnings/sector | read-only Polymarket public endpoints |
 | Synthesis | DeepSeek | deterministic template |
 
 ## Persistence

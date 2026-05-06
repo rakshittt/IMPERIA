@@ -22,7 +22,6 @@ Signals:
 - earnings history
 - sector movement
 - market movement
-- optional Polymarket-derived prediction-market signals
+- Polymarket-derived prediction-market signals when relevant public markets exist
 
 The endpoint never returns buy/sell/hold recommendations.
-

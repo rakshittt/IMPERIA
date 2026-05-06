@@ -21,7 +21,6 @@ SQLite cache
 | Metrics | yfinance statements, SEC fallback | demo fixtures |
 | News | Finnhub, NewsAPI, NewsData, TheNewsAPI, yfinance | demo fixtures |
 | Earnings | Finnhub, yfinance | demo fixtures |
-| Sentiment | price/news/earnings/sector signals | optional Polymarket public endpoints |
+| Sentiment | price/news/earnings/sector signals, Polymarket public endpoints | uncertain result + warning when no relevant market exists |
 
 Missing providers should produce warnings, not fabricated data.
-

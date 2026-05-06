@@ -55,7 +55,7 @@ IMPERIA uses free/open data sources first:
 - free-tier Finnhub and Alpha Vantage fallbacks
 - free-tier news providers when configured
 - DeepSeek only for synthesis, routing, and NLP parsing
-- optional read-only Polymarket public data for prediction-market sentiment when enabled
+- read-only Polymarket public data for prediction-market sentiment when relevant markets exist
 
 No paid market-data dependency is introduced by the backend.
 

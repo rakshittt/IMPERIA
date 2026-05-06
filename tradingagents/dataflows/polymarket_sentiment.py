@@ -1,4 +1,4 @@
-"""Optional read-only Polymarket sentiment provider.
+"""Read-only Polymarket sentiment provider.
 
 This module only reads public market/event data. It never handles wallets,
 private keys, orders, deposits, withdrawals, or trading actions.
@@ -44,10 +44,6 @@ class PolymarketSentiment(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     citations: list[dict[str, Any]] = Field(default_factory=list)
     timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
-
-def is_polymarket_enabled() -> bool:
-    return os.getenv("IMPERIA_ENABLE_POLYMARKET", "false").lower() in {"1", "true", "yes", "on"}
 
 
 def _aliases(ticker: str, company_name: str | None = None) -> list[str]:
@@ -161,14 +157,6 @@ def get_polymarket_sentiment(ticker: str, company_name: str | None = None) -> Po
                 warnings=demo.get("warnings", []),
                 citations=[demo_citation("prediction_market", f"{symbol} demo prediction-market sentiment", ticker=symbol)],
             )
-    if not is_polymarket_enabled():
-        return PolymarketSentiment(
-            ticker=symbol,
-            company_name=company_name,
-            summary="Polymarket sentiment is disabled. Set IMPERIA_ENABLE_POLYMARKET=true to enable read-only public prediction-market context.",
-            warnings=["Polymarket provider disabled by default."],
-        )
-
     cache = get_default_cache()
     cache_key = f"{symbol}:{company_name or ''}"
     cached = cache.get("polymarket_sentiment", cache_key)
@@ -245,4 +233,3 @@ def get_polymarket_sentiment(ticker: str, company_name: str | None = None) -> Po
     )
     cache.set("polymarket_sentiment", cache_key, payload.model_dump(), ttl_seconds=DEFAULT_TTL)
     return payload
-

@@ -60,18 +60,18 @@ def test_news_window_aliases_and_default_today(demo_client):
 
 
 @pytest.mark.unit
-def test_polymarket_disabled_by_default(monkeypatch):
+def test_polymarket_enabled_by_default_no_market_found(monkeypatch, tmp_path):
     monkeypatch.delenv("IMPERIA_DEMO_MODE", raising=False)
-    monkeypatch.delenv("IMPERIA_ENABLE_POLYMARKET", raising=False)
+    monkeypatch.setenv("TRADINGAGENTS_SQLITE_CACHE", str(tmp_path / "cache.sqlite3"))
+    monkeypatch.setattr(polymarket_sentiment, "safe_get_json", lambda *args, **kwargs: {"markets": []})
     result = polymarket_sentiment.get_polymarket_sentiment("NVDA")
     assert result.sentiment_label == "uncertain"
-    assert "disabled" in result.warnings[0].lower()
+    assert "No sufficiently relevant" in result.warnings[-1]
 
 
 @pytest.mark.unit
 def test_polymarket_enabled_no_market_found(monkeypatch, tmp_path):
     monkeypatch.delenv("IMPERIA_DEMO_MODE", raising=False)
-    monkeypatch.setenv("IMPERIA_ENABLE_POLYMARKET", "true")
     monkeypatch.setenv("TRADINGAGENTS_SQLITE_CACHE", str(tmp_path / "cache.sqlite3"))
     monkeypatch.setattr(polymarket_sentiment, "safe_get_json", lambda *args, **kwargs: {"markets": []})
     result = polymarket_sentiment.get_polymarket_sentiment("NVDA", "NVIDIA Corporation")
@@ -115,4 +115,3 @@ def test_compare_two_stocks_endpoint(demo_client):
     assert payload["data"]["ticker_a"] == "AMD"
     assert payload["data"]["ticker_b"] == "NVDA"
     assert "valuation_comparison" in payload["data"]
-

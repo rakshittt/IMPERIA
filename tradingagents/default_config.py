@@ -16,7 +16,6 @@ DEFAULT_CONFIG = {
     ),
     "fast_query_enabled": True,
     "demo_mode": os.getenv("IMPERIA_DEMO_MODE", "false").lower() in {"1", "true", "yes", "on"},
-    "enable_polymarket": os.getenv("IMPERIA_ENABLE_POLYMARKET", "false").lower() in {"1", "true", "yes", "on"},
     "api_rate_limit_per_minute": int(os.getenv("TRADINGAGENTS_API_RATE_LIMIT", "120")),
     "persistence_db_path": os.getenv(
         "PERSISTENCE_DB_PATH",
