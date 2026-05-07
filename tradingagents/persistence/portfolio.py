@@ -47,6 +47,14 @@ def list_portfolio_snapshots() -> list[PortfolioRecord]:
     return [PortfolioRecord(id=row["id"], label=row["label"], holdings=loads(row["holdings"], {}), created_at=row["created_at"]) for row in rows]
 
 
+def delete_portfolio_snapshot(snapshot_id: str) -> bool:
+    existing = get_persistence_db().fetchone("SELECT id FROM portfolio_snapshots WHERE id = ?", (snapshot_id,))
+    if existing is None:
+        raise KeyError(f"portfolio snapshot not found: {snapshot_id}")
+    get_persistence_db().execute("DELETE FROM portfolio_snapshots WHERE id = ?", (snapshot_id,))
+    return True
+
+
 def persist_research_result(research_id: str, result_json: dict[str, Any], status: str = "completed", error: str | None = None) -> bool:
     now = now_ts()
     get_persistence_db().execute(

@@ -48,6 +48,7 @@ TRADINGAGENTS_API_RATE_LIMIT=120
 TRADINGAGENTS_API_CACHE_TTL=15
 PERSISTENCE_DB_PATH="./.tradingagents_data/user_data.db"
 DEEPSEEK_API_KEY=
+DEEPSEEK_MODEL=deepseek-v4
 ALPHA_VANTAGE_API_KEY=
 FINNHUB_API_KEY=
 FINANCIAL_MODELING_PREP_API_KEY=
@@ -59,9 +60,12 @@ THENEWSAPI_COM_API_TOKEN=
 THENEWSAPI_API_TOKEN=
 TAVILY_API_KEY=
 DEEPSEEK_BASE_URL=https://api.deepseek.com
-DEEPSEEK_FAST_MODEL=deepseek-v4-flash
-DEEPSEEK_DEEP_MODEL=deepseek-v4-pro
+DEEPSEEK_FAST_MODEL=
+DEEPSEEK_DEEP_MODEL=
 DEEPSEEK_CALLS_PER_MINUTE=20
+FRED_API_KEY=
+REDIS_URL=redis://localhost:6379
+IMPERIA_CACHE_BACKEND=sqlite
 ```
 
 Do not hardcode API keys in source files or docs. The API loads keys from the process environment or `.env`.
@@ -75,6 +79,7 @@ Some keys are retained for compatibility with existing project integrations. Cor
 - Date inputs are validated as ISO `YYYY-MM-DD`.
 - Deep research now has additive specialist context before bull/bear debate: SEC filings, macro/sector context, and earnings/guidance.
 - `DeepSeekContextOrchestrator` gathers fast and deep context bundles concurrently with per-source timeouts and warning capture.
+- The IMPERIA expert-agent graph adds required production modules for FRED, Polymarket, Form 4, 13F, analyst consensus, peers, institutional holders, research streaming, Redis support, admin APIs, and LLM usage/cost tracking. These modules degrade gracefully when external data is unavailable.
 
 ## Endpoint Reference
 

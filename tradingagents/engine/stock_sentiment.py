@@ -168,7 +168,7 @@ def get_stock_sentiment(ticker: str, *, window: str = "today") -> StockSentiment
     label, confidence = _score_label(score, signal_count)
     summary = (
         f"{symbol} research sentiment is {label} for {window}. "
-        "This combines price action, news, earnings context, sector movement, and optional prediction-market signals. "
+        "This combines price action, news, earnings context, sector movement, and Polymarket prediction-market signals when relevant markets exist. "
         f"{DISCLAIMER}"
     )
     result = StockSentiment(
@@ -197,4 +197,3 @@ def get_stock_sentiment(ticker: str, *, window: str = "today") -> StockSentiment
     )
     cache.set("stock_sentiment", cache_key, result.model_dump(), ttl_seconds=5 * 60)
     return result
-

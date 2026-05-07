@@ -18,6 +18,7 @@ http://localhost:8000
 | --- | --- | --- |
 | GET | `/api/health` | Service health and product scope |
 | GET | `/api/health/providers` | Cache, demo mode, SEC, optional provider, and Polymarket status |
+| GET | `/api/health/llm` | DeepSeek model/configuration status without exposing secrets |
 
 ## Search And AI
 
@@ -136,6 +137,7 @@ curl -X POST "http://localhost:8000/api/screener/nl" \
 | GET | `/api/research` | List persisted research jobs |
 | GET | `/api/research/{id}` | Status/result |
 | GET | `/api/research/stream/{id}` | SSE status stream |
+| GET | `/api/research/{id}/stream` | Stock-first SSE status/event stream |
 | POST | `/api/research/stream` | Compatibility stream submit route |
 
 Ticker-first research request:
@@ -148,6 +150,34 @@ Ticker-first research request:
   "focus": ["fundamentals", "earnings", "filings", "news", "sentiment"]
 }
 ```
+
+Deep research streams events such as `queued`, `running`, `data_collection_started`, `data_collection_completed`, `agent_started`, `agent_completed`, `agent_failed`, `synthesis_started`, `synthesis_completed`, `audit_started`, `completed`, and `failed`.
+
+## Portfolio Snapshots
+
+Portfolio snapshots are a separate persistence feature. They are not required for stock research.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/api/portfolio/snapshots` | Create a snapshot of tickers and weights |
+| GET | `/api/portfolio/snapshots` | List snapshots |
+| GET | `/api/portfolio/snapshots/{id}` | Read one snapshot |
+| DELETE | `/api/portfolio/snapshots/{id}` | Delete one snapshot |
+
+## Admin APIs
+
+Admin APIs are backend-only local/demo observability endpoints. No frontend is required and no secrets are exposed.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/admin/status` | Backend status and module availability |
+| GET | `/api/admin/providers` | Provider configuration and required-module status |
+| GET | `/api/admin/cache` | SQLite/Redis cache health |
+| GET | `/api/admin/research-jobs` | Research job summaries |
+| GET | `/api/admin/agent-runs` | Expert-agent run history |
+| GET | `/api/admin/llm-usage` | LLM usage records and token summary |
+| GET | `/api/admin/cost` | Usage dashboard without hardcoded pricing |
+| GET | `/api/admin/errors` | Admin error log |
 
 ## Validation Rules
 

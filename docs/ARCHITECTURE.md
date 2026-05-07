@@ -12,31 +12,26 @@ Client
 
 Stock-first path:
   selected ticker + question
-    -> quote, price move, metrics, filings, earnings, news, sector context, Polymarket
+    -> quote, price move, metrics, filings, earnings, news, FRED macro,
+       sector context, peers, analyst consensus, Form 4, 13F, institutional holders,
+       Polymarket
     -> citations and warnings
     -> fast answer or queued deep report
 
 Fast path:
   /api/ask or direct stock/market routes
-    -> query_router
-    -> fast_query
-    -> dataflows
-    -> SQLite TTL cache
-    -> optional DeepSeek synthesis
+    -> deterministic planner
+    -> zero-agent deterministic lookup OR selected expert agents
+    -> dataflows + cache
+    -> DeepSeek only for synthesis/reasoning when needed
     -> JSON response with citations and warnings
 
 Deep path:
   POST /api/research
     -> background_jobs.submit_research_job
     -> ThreadPoolExecutor(max_workers=3)
-    -> TradingAgentsGraph
-    -> analyst reports
-    -> specialist reports
-    -> bull/bear debate
-    -> research manager
-    -> trader
-    -> risk analyst
-    -> portfolio/research synthesizer
+    -> stock-first expert-agent graph
+    -> research streaming events
     -> persisted result
 ```
 
@@ -52,23 +47,19 @@ Fast path is optimized for quick structured answers:
 
 ## Deep Research Path
 
-Deep research preserves the TradingAgents graph and adds specialist reports before debate:
+Deep research is stock-first and does not require portfolio inputs. The legacy TradingAgents graph remains intact for compatibility, but ticker-only `/api/research` requests use the IMPERIA expert-agent graph:
 
 ```text
-Market Analyst
-Social Analyst
-News Analyst
-Fundamentals Analyst
-Macro Analyst
-SEC Filings Analyst
-Macro Context Agent
-Earnings Analyst
-Bull Researcher
-Bear Researcher
-Research Manager
-Trader Agent
-Risk Analyst
-Portfolio Manager
+Deterministic Planner
+  -> Data Bundle Assembly
+     -> SEC EDGAR, yfinance, FRED, Polymarket, news, earnings,
+        Form 4, 13F, analyst consensus, peers, institutional holders
+  -> Wave 1: News, Price, Fundamentals, Valuation, SEC, Earnings,
+             Market Context, Sentiment, Insider/Institutional
+  -> Wave 2: Risk, Balanced Thesis, Research Factors
+  -> Wave 3: Research Synthesizer
+  -> Wave 4: Evidence & Data Quality Auditor
+  -> SQLite persistence + SSE stream
 ```
 
 ## Data Sources
@@ -83,16 +74,20 @@ Portfolio Manager
 | Ratios | yfinance statements | SEC XBRL fallback |
 | Demo | local deterministic fixtures | no external call required |
 | Sentiment | price/news/earnings/sector | read-only Polymarket public endpoints |
+| Macro | FRED | index/ETF proxies + warnings |
+| Ownership | Form 4 and 13F SEC filings | empty structured result + warnings |
+| Analyst consensus | Finnhub | unavailable warning |
+| Peer comparison | static peer map + free metrics | partial peers + warnings |
 | Synthesis | DeepSeek | deterministic template |
 
 ## Persistence
 
-Two SQLite stores are used:
+SQLite remains the local/demo persistence layer:
 
 - TTL response/data cache: `TRADINGAGENTS_SQLITE_CACHE`
 - user/research persistence: `PERSISTENCE_DB_PATH`
 
-Both are local-first and safe for development. For multi-process deployment, move persistence to a managed database later.
+Redis is implemented for production-style cache, rate limiting, job-state/event-buffer support, and usage counters where configured with `IMPERIA_CACHE_BACKEND=redis`.
 
 ## Security And Resilience
 

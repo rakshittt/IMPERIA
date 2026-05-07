@@ -20,3 +20,10 @@ Avoided wording:
 
 When a user asks for direct advice, the backend reframes the response into research factors and includes: `Educational research only. Not investment advice.`
 
+Every final expert-agent response exposes the broader disclaimer:
+
+```text
+IMPERIA is an educational research tool. It is not financial advice, not an investment recommendation, and not a trading instruction. Data may be stale or incomplete.
+```
+
+The Research Factors Agent produces questions and factors to research. It does not produce pass/fail verdicts, allocation guidance, or trading instructions.

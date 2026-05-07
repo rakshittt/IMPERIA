@@ -27,8 +27,9 @@ DEFAULT_CONFIG = {
     "memory_log_max_entries": None,
     # LLM settings
     "llm_provider": "deepseek",
-    "deep_think_llm": os.getenv("DEEPSEEK_DEEP_MODEL", "deepseek-v4-pro"),
-    "quick_think_llm": os.getenv("DEEPSEEK_FAST_MODEL", "deepseek-v4-flash"),
+    "deepseek_model": os.getenv("DEEPSEEK_MODEL", "deepseek-v4"),
+    "deep_think_llm": os.getenv("DEEPSEEK_DEEP_MODEL") or os.getenv("DEEPSEEK_MODEL", "deepseek-v4"),
+    "quick_think_llm": os.getenv("DEEPSEEK_FAST_MODEL") or os.getenv("DEEPSEEK_MODEL", "deepseek-v4"),
     # When None, each provider's client falls back to its own default endpoint
     # (api.openai.com for OpenAI, generativelanguage.googleapis.com for Gemini, ...).
     # The CLI overrides this per provider when the user picks one. Keeping a

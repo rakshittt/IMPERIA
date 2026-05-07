@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 .DS_Store
 **/.DS_Store
+__MACOSX/
 
 # C extensions
 *.so
@@ -45,6 +46,7 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
+.cache/
 nosetests.xml
 coverage.xml
 *.cover
@@ -153,6 +155,7 @@ activemq-data/
 .env
 .envrc
 .venv
+.venv/
 env/
 venv/
 ENV/
@@ -219,6 +222,9 @@ __marimo__/
 
 # Cache
 .tradingagents_data/
+*.sqlite
+*.sqlite3
+*.db
 **/data_cache/
 frontend-next/
 node_modules/

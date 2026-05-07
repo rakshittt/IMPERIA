@@ -1,10 +1,10 @@
 # IMPERIA
 
-**IMPERIA** is an open-source AI research assistant backend for US stocks.
+**IMPERIA** is an open-source, production-minded AI research backend for US stocks.
 
 Tagline: **IMPERIA — Source-cited AI research for US stocks.**
 
-It helps a user select a US-listed stock, understand what is happening, inspect the supporting data, and generate source-cited fast answers or deep multi-agent research reports. The product principle is **Data first. AI second.**
+It helps a user select a US-listed stock, understand what is happening, inspect the supporting data, and generate source-cited fast answers or deep multi-agent research reports. It combines free/open financial data, SEC filings, computed metrics, news, earnings data, read-only prediction-market sentiment, citations, and DeepSeek-v4-powered expert agents. The product principle is **Data first. AI second.**
 
 The internal Python package is still named `tradingagents` so existing imports and tests keep working. The product, API, docs, and deployment surface are now organized around **IMPERIA**.
 
@@ -28,6 +28,8 @@ It can:
 - Queue deep research jobs in a lightweight background thread pool.
 - Run in deterministic demo mode for presentations without external APIs.
 - Add read-only Polymarket-derived prediction-market sentiment as part of stock sentiment when relevant markets exist.
+- Use FRED macro data, Form 4 parsing, 13F parsing, analyst consensus, peer comparison, institutional-holder analysis, Redis-backed cache/rate-limit support, research streaming, cost/usage tracking, admin APIs, and portfolio snapshots as production-style backend modules.
+- Run a dynamic DeepSeek-v4 expert-agent graph. Fast queries activate only the specialist agents required for the task, while deep research reports run a broader analyst panel. Each agent receives structured evidence, citations, warnings, and data freshness metadata before producing source-grounded JSON output.
 - Run the TradingAgents deep-research graph with market, fundamentals, news, social, SEC filings, macro, earnings, bull/bear debate, risk, trader, and portfolio-manager agents.
 
 ## How It Works
@@ -46,13 +48,18 @@ Client / API caller
        -> SQLite cache
        -> DeepSeek fast synthesis only when a natural-language answer is needed
        -> structured JSON with citations and warnings
+  -> Expert-agent mode:
+       deterministic planner
+       -> structured evidence bundle
+       -> selected specialist agents
+       -> research synthesizer
+       -> evidence/data-quality auditor
   -> Deep mode:
        POST /api/research
        -> ThreadPoolExecutor(max_workers=3)
-       -> TradingAgentsGraph
-       -> analyst agents + specialist agents
-       -> bull/bear debate + risk + portfolio manager
+       -> stock-first expert-agent panel or legacy graph compatibility
        -> persisted result in SQLite
+       -> SSE progress stream
 ```
 
 ## Project Structure
@@ -68,6 +75,7 @@ tradingagents/
   engine/                      Query router, fast query, citations, DeepSeek context
   graph/                       Existing TradingAgents LangGraph orchestration
   persistence/                 SQLite watchlists, portfolios, research results
+  expert_agents/               Stock-first expert-agent graph and planner
   utils/                       Validation, HTTP, DeepSeek helper utilities
   workers/                     Background research job queue
 tests/                         Unit and API tests with mocked external providers
@@ -116,6 +124,9 @@ curl "http://localhost:8000/api/stock/AAPL/sentiment"
 curl "http://localhost:8000/api/stock/AAPL/research-snapshot"
 curl "http://localhost:8000/api/stock/AAPL/investor-checklist"
 curl "http://localhost:8000/api/compare?ticker_a=AMD&ticker_b=NVDA"
+curl "http://localhost:8000/api/health/providers"
+curl "http://localhost:8000/api/admin/status"
+curl "http://localhost:8000/api/admin/llm-usage"
 curl "http://localhost:8000/api/stock/AAPL/next-earnings"
 curl "http://localhost:8000/api/market/summary"
 curl "http://localhost:8000/api/market/movers"
@@ -151,7 +162,7 @@ pytest -q
 Current expected baseline:
 
 ```text
-131 passed, 42 subtests passed
+152 passed, 42 subtests passed
 ```
 
 ## Live Smoke Test
@@ -173,6 +184,12 @@ python scripts/smoke_test.py
 - [Safety And Limitations](docs/SAFETY_AND_LIMITATIONS.md)
 - [Sentiment](docs/SENTIMENT.md)
 - [Polymarket Provider](docs/POLYMARKET_PROVIDER.md)
+- [FRED Macro](docs/FRED_MACRO.md)
+- [Form 4 And 13F](docs/FORM4_13F.md)
+- [Admin API](docs/ADMIN_API.md)
+- [Redis](docs/REDIS.md)
+- [Research Streaming](docs/RESEARCH_STREAMING.md)
+- [Cost Tracking](docs/COST_TRACKING.md)
 - [Free US Finance Backend Notes](docs/backend_free_us_finance.md)
 
 ## Data Sources
@@ -187,9 +204,19 @@ Primary/free sources:
 - NewsAPI, NewsData, TheNewsAPI
 - Tavily web search when configured
 - Read-only Polymarket public endpoints for prediction-market sentiment
+- FRED macro indicators when `FRED_API_KEY` is configured
+- SEC-derived Form 4 and 13F-related filing data
+- Analyst consensus from Finnhub when configured
+- Peer and institutional-holder snapshots from free/open sources where available
 
 IMPERIA does not introduce paid data dependencies.
+
+Most deterministic endpoints work without DeepSeek. DeepSeek is used only for synthesis, reasoning, summarization, and expert-style analysis.
+
+IMPERIA implements production-style backend modules for Redis-backed caching/job state, FRED macro data, Polymarket sentiment, Form 4 and 13F parsing, analyst consensus, peer comparison, institutional holder analysis, research streaming, cost tracking, admin APIs, and portfolio snapshots. These modules degrade gracefully when external data is unavailable.
 
 ## Product Status
 
 IMPERIA is backend-first and production-hardened enough for local research workflows, API prototyping, and serious backend iteration. It does not currently ship a frontend; the old frontend scaffold was removed so a new interface can be built cleanly later.
+
+Limitations: educational/research use only, not investment advice, no trading, no brokerage integration, US equities and major US ETFs only, free data may be delayed/incomplete/rate-limited, and AI output may be wrong and should be verified with citations.

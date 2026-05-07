@@ -64,6 +64,56 @@ class PersistenceDB:
                     )
                     """
                 )
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS llm_usage (
+                        id TEXT PRIMARY KEY,
+                        request_id TEXT,
+                        research_id TEXT,
+                        model TEXT,
+                        agent_name TEXT,
+                        ticker TEXT,
+                        intent TEXT,
+                        mode TEXT,
+                        input_tokens INTEGER,
+                        output_tokens INTEGER,
+                        total_tokens INTEGER,
+                        latency_ms INTEGER,
+                        success INTEGER,
+                        cache_hit INTEGER,
+                        error_message TEXT,
+                        created_at REAL NOT NULL
+                    )
+                    """
+                )
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS agent_runs (
+                        id TEXT PRIMARY KEY,
+                        research_id TEXT,
+                        agent_name TEXT NOT NULL,
+                        ticker TEXT,
+                        intent TEXT,
+                        mode TEXT,
+                        status TEXT NOT NULL,
+                        latency_ms INTEGER,
+                        cache_hit INTEGER,
+                        warnings TEXT,
+                        created_at REAL NOT NULL
+                    )
+                    """
+                )
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS admin_errors (
+                        id TEXT PRIMARY KEY,
+                        source TEXT NOT NULL,
+                        message TEXT NOT NULL,
+                        details TEXT,
+                        created_at REAL NOT NULL
+                    )
+                    """
+                )
             self._ready = True
 
     def execute(self, sql: str, params: tuple[Any, ...] = ()) -> None:

@@ -11,7 +11,7 @@ from tradingagents.api.middleware.cache_middleware import CacheMiddleware
 from tradingagents.api.middleware.rate_limiter import RateLimitMiddleware
 from tradingagents.api.middleware.request_id import RequestIDMiddleware
 from tradingagents.api.middleware.security import SecurityHeadersMiddleware
-from tradingagents.api.routes import ai, earnings, market, research, screener, search, stock, watchlist
+from tradingagents.api.routes import admin, ai, earnings, market, portfolio, research, screener, search, stock, watchlist
 from tradingagents.dataflows.provider_registry import configured_provider_status
 
 load_dotenv()
@@ -42,8 +42,10 @@ def create_app() -> FastAPI:
     app.include_router(earnings.router)
     app.include_router(screener.router)
     app.include_router(watchlist.router)
+    app.include_router(portfolio.router)
     app.include_router(research.router)
     app.include_router(ai.router)
+    app.include_router(admin.router)
 
     @app.get("/", response_class=HTMLResponse)
     async def read_root():
@@ -63,6 +65,19 @@ def create_app() -> FastAPI:
         payload = configured_provider_status()
         payload["status"] = "ok"
         return payload
+
+    @app.get("/api/health/llm")
+    async def llm_health():
+        configured = bool(os.getenv("DEEPSEEK_API_KEY"))
+        model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4")
+        return {
+            "status": "ok" if configured else "degraded",
+            "deepseek_configured": configured,
+            "default_model": model,
+            "fast_model": os.getenv("DEEPSEEK_FAST_MODEL") or model,
+            "deep_model": os.getenv("DEEPSEEK_DEEP_MODEL") or model,
+            "warnings": [] if configured else ["DEEPSEEK_API_KEY missing; deterministic endpoints continue, synthesis may use fallbacks."],
+        }
 
     return app
 

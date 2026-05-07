@@ -9,6 +9,12 @@ from .free_provider_fallbacks import (
 from .market_data import get_batch_quotes, get_market_breadth, get_market_indices, get_market_movers, get_quote
 from .news_aggregator import get_market_news, get_stock_news, search_news
 from .earnings_data import get_earnings_calendar, get_earnings_history, get_next_earnings
+from .analyst_consensus import get_analyst_consensus
+from .form4_parser import get_form4_activity
+from .fred_macro import get_macro_indicators
+from .institutional_holders import get_institutional_holder_analysis
+from .peer_comparison import get_peer_comparison
+from .thirteen_f_parser import get_thirteen_f_activity
 from .sec_edgar import (
     get_13f_related_filings,
     get_cik_for_ticker,
@@ -38,6 +44,12 @@ __all__ = [
     "get_earnings_calendar",
     "get_earnings_history",
     "get_next_earnings",
+    "get_macro_indicators",
+    "get_form4_activity",
+    "get_thirteen_f_activity",
+    "get_analyst_consensus",
+    "get_peer_comparison",
+    "get_institutional_holder_analysis",
     "get_cik_for_ticker",
     "get_sec_filings",
     "get_companyfacts",

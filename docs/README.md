@@ -15,6 +15,12 @@ Start here when you are learning or extending the project.
 | [Demo Mode](DEMO_MODE.md) | Deterministic presentation mode |
 | [Agents](AGENTS.md) | Software analysis module responsibilities |
 | [Sentiment](SENTIMENT.md) | Combined research sentiment design |
-| [Polymarket Provider](POLYMARKET_PROVIDER.md) | Optional read-only prediction-market provider |
+| [Polymarket Provider](POLYMARKET_PROVIDER.md) | Required read-only prediction-market module |
+| [FRED Macro](FRED_MACRO.md) | Required macro module and graceful degradation |
+| [Form 4 And 13F](FORM4_13F.md) | Insider and institutional filing modules |
+| [Admin API](ADMIN_API.md) | Backend-only observability endpoints |
+| [Redis](REDIS.md) | Production-style cache/job/rate-limit support |
+| [Research Streaming](RESEARCH_STREAMING.md) | SSE progress events for deep research |
+| [Cost Tracking](COST_TRACKING.md) | LLM usage and cost-dashboard endpoints |
 | [Demo Universe](DEMO_UNIVERSE.md) | Popular large-cap demo universe notes |
 | [News Windows](NEWS_WINDOWS.md) | Supported stock-news time windows |

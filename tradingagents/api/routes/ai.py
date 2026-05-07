@@ -10,10 +10,12 @@ from fastapi.responses import JSONResponse
 from tradingagents.api.deps import get_fast_engine
 from tradingagents.api.models import AskRequest, ResearchRequest
 from tradingagents.api.responses import standard_response
-from tradingagents.api.services import run_deep_research
+from tradingagents.api.services import run_deep_research, run_stock_expert_research
 from tradingagents.engine.query_router import route_query
 from tradingagents.engine.safety import assess_query, reframe_prompt, sanitize_answer
 from tradingagents.engine import stock_intelligence
+from tradingagents.expert_agents.planner import plan_query
+from tradingagents.expert_agents.runtime import ExpertAgentRuntime
 from tradingagents.workers.background_jobs import submit_research_job
 
 router = APIRouter(prefix="/api", tags=["ai"])
@@ -53,6 +55,38 @@ def _hybrid_fast_response(payload: dict[str, Any], *, intent: str, ticker: str |
     return response
 
 
+def _expert_fast_response(query: str, ticker: str, *, window: str | None = None) -> dict[str, Any]:
+    runtime = ExpertAgentRuntime()
+    result = runtime.run(query=query, ticker=ticker, mode="fast", window=window)
+    report = result.final_report
+    answer = sanitize_answer(str(report.get("executive_summary") or report.get("summary") or "IMPERIA could not synthesize a fast expert answer from available evidence."))
+    data = {
+        "answer": answer,
+        "mode": "fast",
+        "ticker": result.ticker,
+        "intent": result.intent,
+        "time_window": result.time_window,
+        "data_used": {
+            "contributing_agents": report.get("contributing_agents", []),
+            "agent_count": len(result.agent_outputs),
+        },
+        "final_report": report,
+        "agent_outputs": result.agent_outputs,
+        "not_investment_advice": True,
+    }
+    response = standard_response(
+        data,
+        citations=result.citations,
+        warnings=result.warnings,
+        mode="fast",
+        intent=result.intent,
+        providers_used=result.providers_used,
+        data_quality=result.data_quality,
+    )
+    response.update({"mode": "fast", "answer": answer, "ticker": result.ticker})
+    return response
+
+
 @router.post("/ask")
 async def ask(payload: AskRequest):
     query = f"{payload.query} {payload.ticker}" if payload.ticker and payload.ticker not in payload.query.upper() else payload.query
@@ -73,6 +107,9 @@ async def ask(payload: AskRequest):
         return _hybrid_fast_response(data, intent="safety_reframe", ticker=ticker)
 
     if route.mode == "fast":
+        expert_plan = plan_query(payload.query, selected_ticker=ticker, window=payload.window, explicit_mode="fast")
+        if ticker and expert_plan.intent not in {"simple_lookup", "out_of_scope"}:
+            return _expert_fast_response(payload.query, ticker, window=payload.window)
         if ticker and any(term in payload.query.lower() for term in ("what happened", "why", "moving", "moved")):
             return _hybrid_fast_response(stock_intelligence.build_what_happened(ticker, window=payload.window or "today"), intent="what_happened", ticker=ticker)
         if ticker and "sentiment" in payload.query.lower():
@@ -102,7 +139,8 @@ async def ask(payload: AskRequest):
         )
     profile = payload.profile or {}
     profile.update({"question": payload.query, "window": payload.window, "focus": payload.focus, "stock_first": bool(ticker)})
-    submitted = submit_research_job(run_deep_research, portfolio, payload.date, profile)
+    runner = run_stock_expert_research if ticker and not payload.portfolio else run_deep_research
+    submitted = submit_research_job(runner, portfolio, payload.date, profile)
     response = standard_response(
         {"mode": "deep", "route": route.to_dict(), "research_id": submitted["research_id"], "status": submitted["status"], "ticker": ticker},
         warnings=[],

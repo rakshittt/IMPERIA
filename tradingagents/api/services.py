@@ -11,7 +11,9 @@ from dotenv import load_dotenv
 
 from tradingagents.default_config import DEFAULT_CONFIG
 from tradingagents.dataflows.demo_provider import get_demo_research_report, is_demo_mode
+from tradingagents.expert_agents.runtime import run_stock_research
 from tradingagents.persistence.portfolio import persist_research_result
+from tradingagents.workers.background_jobs import emit_research_event
 
 load_dotenv()
 
@@ -110,3 +112,41 @@ def run_deep_research(
         profile or {},
     )
     return normalize_research_result(final_state, research_id=research_id)
+
+
+def run_stock_expert_research(
+    portfolio: list[dict[str, Any]],
+    analysis_date: str | None = None,
+    profile: dict[str, Any] | None = None,
+    research_id: str | None = None,
+) -> dict[str, Any]:
+    """Run stock-first expert-agent research without requiring portfolio inputs."""
+
+    profile = profile or {}
+    ticker = str(profile.get("ticker") or (portfolio[0].get("ticker") if portfolio else "")).upper()
+    if not ticker:
+        raise ValueError("stock-first expert research requires a ticker")
+
+    def _emit(event: str, **payload: Any) -> None:
+        if research_id:
+            emit_research_event(research_id, event, **payload)
+
+    _emit("data_collection_started", warnings=[])
+    _emit("synthesis_started", warnings=[])
+    result = run_stock_research(
+        ticker,
+        question=profile.get("question") or f"Deep research report on {ticker}",
+        window=profile.get("window"),
+        mode="deep",
+        research_id=research_id,
+        emit_event=_emit,
+    )
+    _emit("synthesis_completed", warnings=result.get("warnings", [])[:5])
+    _emit("audit_started", warnings=[])
+    _emit("completed", warnings=result.get("warnings", [])[:5])
+    rid = research_id or str(uuid.uuid4())[:8]
+    result["id"] = rid
+    result["research_id"] = rid
+    research_store[rid] = result
+    persist_research_result(rid, result, status="completed")
+    return result
