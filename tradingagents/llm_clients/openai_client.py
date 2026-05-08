@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any, Optional
 
@@ -6,6 +7,8 @@ from langchain_openai import ChatOpenAI
 
 from .base_client import BaseLLMClient, normalize_content
 from .validators import validate_model
+
+logger = logging.getLogger(__name__)
 
 
 class NormalizedChatOpenAI(ChatOpenAI):
@@ -155,6 +158,12 @@ class OpenAIClient(BaseLLMClient):
                 api_key = os.environ.get(api_key_env)
                 if api_key:
                     llm_kwargs["api_key"] = api_key
+                else:
+                    logger.warning(
+                        "llm_client_missing_key provider=%s env_var=%s -- LLM calls will fail with auth errors",
+                        self.provider,
+                        api_key_env,
+                    )
             else:
                 llm_kwargs["api_key"] = "ollama"
         elif self.base_url:

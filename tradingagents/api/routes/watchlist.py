@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException
 
 from tradingagents.api.models import WatchlistCreateRequest, WatchlistTickerRequest
 from tradingagents.persistence.watchlist import (
@@ -32,7 +31,7 @@ async def get_one(watchlist_id: str):
     try:
         return get_watchlist(watchlist_id).model_dump()
     except KeyError:
-        return JSONResponse({"error": "Watchlist not found"}, status_code=404)
+        raise HTTPException(status_code=404, detail="Watchlist not found.")
 
 
 @router.post("/{watchlist_id}/tickers")
@@ -40,7 +39,7 @@ async def add_ticker(watchlist_id: str, payload: WatchlistTickerRequest):
     try:
         return add_ticker_to_watchlist(watchlist_id, payload.ticker).model_dump()
     except KeyError:
-        return JSONResponse({"error": "Watchlist not found"}, status_code=404)
+        raise HTTPException(status_code=404, detail="Watchlist not found.")
 
 
 @router.delete("/{watchlist_id}/tickers/{ticker}")
@@ -48,7 +47,7 @@ async def remove_ticker(watchlist_id: str, ticker: str):
     try:
         return remove_ticker_from_watchlist(watchlist_id, ticker).model_dump()
     except KeyError:
-        return JSONResponse({"error": "Watchlist not found"}, status_code=404)
+        raise HTTPException(status_code=404, detail="Watchlist not found.")
 
 
 @router.delete("/{watchlist_id}")
@@ -61,4 +60,4 @@ async def quotes(watchlist_id: str):
     try:
         return [item.model_dump() for item in get_watchlist_quotes(watchlist_id)]
     except KeyError:
-        return JSONResponse({"error": "Watchlist not found"}, status_code=404)
+        raise HTTPException(status_code=404, detail="Watchlist not found.")

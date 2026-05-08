@@ -20,6 +20,7 @@ from tradingagents.persistence.portfolio import (
 MAX_WORKERS = 3
 _EXECUTOR = ThreadPoolExecutor(max_workers=MAX_WORKERS)
 _FUTURES: dict[str, Future] = {}
+_FUTURES_LOCK = RLock()
 _EVENTS: dict[str, list[dict[str, Any]]] = {}
 _EVENT_LOCK = RLock()
 logger = logging.getLogger(__name__)
@@ -49,7 +50,8 @@ def submit_research_job(
     emit_research_event(rid, "queued", warnings=[])
     logger.info("research_job_status job_id=%s status=queued", rid)
     future = _EXECUTOR.submit(_run_job, rid, runner, portfolio, analysis_date, profile)
-    _FUTURES[rid] = future
+    with _FUTURES_LOCK:
+        _FUTURES[rid] = future
     return {"research_id": rid, "id": rid, "status": "queued"}
 
 
@@ -89,7 +91,8 @@ def get_research_job(research_id: str) -> dict[str, Any] | None:
     persisted = get_persisted_research(research_id)
     if persisted:
         return persisted
-    future = _FUTURES.get(research_id)
+    with _FUTURES_LOCK:
+        future = _FUTURES.get(research_id)
     if future is None:
         return None
     status = "completed" if future.done() and not future.exception() else "failed" if future.done() else "running"

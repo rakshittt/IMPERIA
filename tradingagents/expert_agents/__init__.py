@@ -7,5 +7,6 @@ research jobs without requiring user portfolio inputs.
 
 from .planner import plan_query, selected_agents_for_intent
 from .runtime import ExpertAgentRuntime, run_stock_research
+from .skill_pack import agent_methods_for_response
 
-__all__ = ["ExpertAgentRuntime", "plan_query", "run_stock_research", "selected_agents_for_intent"]
+__all__ = ["ExpertAgentRuntime", "agent_methods_for_response", "plan_query", "run_stock_research", "selected_agents_for_intent"]

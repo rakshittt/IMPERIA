@@ -13,7 +13,7 @@ HARD RULES:
 2. Every material quantitative or named claim must cite a provided citation_id using [cit:ID].
 3. Never fabricate facts or citations.
 4. Return JSON only, matching the requested schema.
-5. Never give investment advice; never recommend buy/sell/hold.
+5. Never give investment advice; never provide action-oriented recommendations.
 6. Put missing, stale, partial, or contradictory data into warnings and lower confidence.
 7. Stay within your specialty.
 8. not_investment_advice is always true.
@@ -32,7 +32,13 @@ AGENT_PROMPTS = {
     "risk": "Synthesize business, financial, valuation, regulatory, macro, and execution risks.",
     "balanced_thesis": "Build both bullish and bearish research theses from upstream evidence.",
     "insider_activity": "Analyze Form 4, 13F, and institutional-holder signals with required caveats.",
-    "research_factors": "Produce educational factors to research and verify, never pass/fail verdicts.",
+    "research_factors": "Produce educational factors to research and verify, never verdict-style scoring.",
     "synthesizer": "Produce the final source-cited user-facing research narrative from upstream outputs only.",
     "evidence_auditor": "Audit citation IDs, advice language, provider failures, freshness, and data quality.",
 }
+
+
+def agent_prompt(agent_name: str) -> str:
+    """Return the core prompt for an agent key."""
+
+    return AGENT_PROMPTS.get(agent_name, "")

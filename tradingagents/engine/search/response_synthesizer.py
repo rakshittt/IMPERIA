@@ -24,7 +24,7 @@ def _compact(data: Any) -> Any:
     if isinstance(data, BaseModel):
         return data.model_dump()
     if isinstance(data, list):
-        return [_compact(item) for item in data[:10]]
+        return [_compact(item) for item in data]
     if isinstance(data, dict):
         return {key: _compact(value) for key, value in data.items() if value not in (None, [], {})}
     return data
@@ -91,7 +91,7 @@ def _fallback_answer(query: str, bundle: dict[str, Any], warnings: list[str] | N
 
 
 def synthesize_fast_answer(query: str, data_bundle: dict[str, Any]) -> SynthesizedAnswer:
-    formatted = json.dumps(_compact(data_bundle), default=str, indent=2)[:12000]
+    formatted = json.dumps(_compact(data_bundle), default=str, indent=2)
     system = (
         "You are a financial intelligence assistant answering a question about US stocks. "
         "Use only the data provided. Cite sources inline using [Source: {source_name}]."
@@ -105,7 +105,6 @@ def synthesize_fast_answer(query: str, data_bundle: dict[str, Any]) -> Synthesiz
             ],
             mode="fast",
             temperature=0.3,
-            max_tokens=800,
             timeout=15,
         )
         if not text:

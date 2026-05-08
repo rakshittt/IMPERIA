@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 import json
 
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException
 from sse_starlette.sse import EventSourceResponse
 
+from tradingagents.api.deps import require_api_key
 from tradingagents.api.models import ResearchRequest
 from tradingagents.api.services import research_store, run_deep_research, run_stock_expert_research
 from tradingagents.persistence.portfolio import (
@@ -28,13 +28,13 @@ async def list_research(limit: int = 20):
     return [item.model_dump() for item in list_research_results(limit=limit)]
 
 
-@router.post("")
+@router.post("", dependencies=[Depends(require_api_key)])
 async def submit_research(payload: ResearchRequest):
     portfolio = [item.model_dump(exclude_none=True) for item in payload.portfolio or []]
     if not portfolio and payload.ticker:
         portfolio = [{"ticker": payload.ticker, "weight": 1.0}]
     if not portfolio:
-        return JSONResponse({"error": "Research requires a ticker or portfolio."}, status_code=422)
+        raise HTTPException(status_code=422, detail="Research requires a ticker or portfolio.")
     profile = payload.profile or {}
     profile.update(
         {
@@ -77,7 +77,7 @@ async def stream_research_status_alias(research_id: str):
     return await stream_research_status(research_id)
 
 
-@router.post("/stream")
+@router.post("/stream", dependencies=[Depends(require_api_key)])
 async def legacy_stream_research(payload: ResearchRequest):
     portfolio = [item.model_dump(exclude_none=True) for item in payload.portfolio or []]
     if not portfolio and payload.ticker:
@@ -101,4 +101,4 @@ async def get_research(research_id: str):
     job = get_research_job(research_id)
     if job:
         return job
-    return JSONResponse({"error": "Research not found"}, status_code=404)
+    raise HTTPException(status_code=404, detail="Research not found.")

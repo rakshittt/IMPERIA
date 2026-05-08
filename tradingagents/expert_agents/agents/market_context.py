@@ -42,4 +42,13 @@ def run(bundle: dict[str, Any], upstream: dict[str, dict[str, Any]] | None = Non
         stock_specific_vs_sector_move="mixed",
         competitive_position_notes=[f"Peer basket: {', '.join(item.get('ticker', '') for item in peers[:5])}"],
         impact_on_stock="Broad market and sector context can amplify or offset stock-specific news.",
+        sector_methodology=[
+            "Compare stock movement against broad indices, sector ETFs, VIX context, and peer basket movement.",
+            "Treat FRED as the preferred macro source when configured; otherwise disclose ETF/index proxy limits.",
+        ],
+        competitive_landscape_framework={
+            "peer_count": len(peers),
+            "sector_etf_count": len(sectors),
+            "fred_available": not fred_missing,
+        },
     )

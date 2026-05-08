@@ -39,6 +39,15 @@ def _get_news(ticker: str, window: str, limit: int = 10) -> list[dict[str, Any]]
         return [item.model_dump() for item in news_aggregator.get_stock_news(ticker, limit=limit)]
 
 
+def _get_sec_filings_safe(ticker: str, *, limit: int = 10) -> tuple[list[dict[str, Any]], list[str]]:
+    """Return SEC filings without letting EDGAR lookup issues crash APIs."""
+
+    try:
+        return get_sec_filings(ticker, limit=limit), []
+    except Exception as exc:
+        return [], [f"SEC filings unavailable for {ticker}: {type(exc).__name__}."]
+
+
 def build_what_happened(ticker: str, *, window: str = "today") -> dict[str, Any]:
     symbol = normalize_ticker(ticker)
     window = news_aggregator.normalize_news_window(window)
@@ -111,7 +120,7 @@ def build_research_snapshot(ticker: str, *, window: str = "today") -> dict[str, 
 def build_risks(ticker: str) -> dict[str, Any]:
     symbol = normalize_ticker(ticker)
     metrics = compute_financial_metrics(symbol)
-    filings = get_sec_filings(symbol, limit=5)
+    filings, filing_warnings = _get_sec_filings_safe(symbol, limit=5)
     risk_items = [
         "Valuation risk: compare P/E and EV/EBITDA against growth and margins.",
         "Earnings risk: watch estimate revisions, surprise history, and guidance commentary.",
@@ -132,7 +141,7 @@ def build_risks(ticker: str) -> dict[str, Any]:
         "sec_risk_highlights": [filing.get("summary") or f"{filing.get('filing_type')} filed {filing.get('filing_date')}" for filing in filings[:3]],
         "financial_risks": {"debt_to_equity": metric_values.get("debt_to_equity"), "current_ratio": metric_values.get("current_ratio")},
         "citations": citations,
-        "warnings": metrics.get("warnings", []),
+        "warnings": metrics.get("warnings", []) + filing_warnings,
     }
 
 
@@ -155,7 +164,7 @@ def build_bull_bear(ticker: str) -> dict[str, Any]:
         "ticker": symbol,
         "bull_thesis": bull,
         "bear_thesis": bear,
-        "assumptions": ["Educational research framing only; no buy/sell/hold recommendation is provided."],
+        "assumptions": ["Educational research framing only; no action-oriented recommendation is provided."],
         "risks": build_risks(symbol)["risks"],
         "citations": metrics.get("citations", []) + sentiment.get("citations", []),
         "warnings": metrics.get("warnings", []) + sentiment.get("warnings", []),
@@ -180,7 +189,7 @@ def build_earnings_brief(ticker: str) -> dict[str, Any]:
 
 def build_filing_brief(ticker: str) -> dict[str, Any]:
     symbol = normalize_ticker(ticker)
-    filings = get_sec_filings(symbol, limit=10)
+    filings, filing_warnings = _get_sec_filings_safe(symbol, limit=10)
     latest = filings[:3]
     return {
         "ticker": symbol,
@@ -188,7 +197,7 @@ def build_filing_brief(ticker: str) -> dict[str, Any]:
         "summary": "Recent SEC filings are listed for review. IMPERIA highlights metadata and available filing summaries without fabricating unavailable sections.",
         "important_risks": [item.get("summary") for item in latest if item.get("summary")] or ["Review latest 10-K/10-Q risk factors and MD&A for material changes."],
         "citations": [_citation("sec", "SEC EDGAR", item.get("filing_type") or "SEC filing", item.get("url"), symbol) for item in latest],
-        "warnings": [] if latest else [f"No recent SEC filings available for {symbol} from configured free sources."],
+        "warnings": filing_warnings if filing_warnings else [] if latest else [f"No recent SEC filings available for {symbol} from configured free sources."],
     }
 
 
@@ -221,6 +230,8 @@ def compare_stocks(ticker_a: str, ticker_b: str) -> dict[str, Any]:
     right_metrics = compute_financial_metrics(right)
     left_sentiment = get_stock_sentiment(left).model_dump()
     right_sentiment = get_stock_sentiment(right).model_dump()
+    left_risks = build_risks(left)
+    right_risks = build_risks(right)
     keys = ["pe", "forward_pe", "revenue_growth", "gross_margin", "net_margin", "roe", "debt_to_equity"]
     comparison = {
         key: {
@@ -237,8 +248,14 @@ def compare_stocks(ticker_a: str, ticker_b: str) -> dict[str, Any]:
         "profitability_comparison": {key: comparison[key] for key in ["gross_margin", "net_margin", "roe"]},
         "balance_sheet_comparison": {"debt_to_equity": comparison["debt_to_equity"]},
         "sentiment_comparison": {left: left_sentiment.get("sentiment_label"), right: right_sentiment.get("sentiment_label")},
-        "risks": {left: build_risks(left)["risks"], right: build_risks(right)["risks"]},
+        "risks": {left: left_risks["risks"], right: right_risks["risks"]},
         "citations": left_metrics.get("citations", []) + right_metrics.get("citations", []) + left_sentiment.get("citations", []) + right_sentiment.get("citations", []),
-        "warnings": left_metrics.get("warnings", []) + right_metrics.get("warnings", []) + left_sentiment.get("warnings", []) + right_sentiment.get("warnings", []),
+        "warnings": (
+            left_metrics.get("warnings", [])
+            + right_metrics.get("warnings", [])
+            + left_sentiment.get("warnings", [])
+            + right_sentiment.get("warnings", [])
+            + left_risks.get("warnings", [])
+            + right_risks.get("warnings", [])
+        ),
     }
-

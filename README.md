@@ -30,6 +30,7 @@ It can:
 - Add read-only Polymarket-derived prediction-market sentiment as part of stock sentiment when relevant markets exist.
 - Use FRED macro data, Form 4 parsing, 13F parsing, analyst consensus, peer comparison, institutional-holder analysis, Redis-backed cache/rate-limit support, research streaming, cost/usage tracking, admin APIs, and portfolio snapshots as production-style backend modules.
 - Run a dynamic DeepSeek-v4 expert-agent graph. Fast queries activate only the specialist agents required for the task, while deep research reports run a broader analyst panel. Each agent receives structured evidence, citations, warnings, and data freshness metadata before producing source-grounded JSON output.
+- Apply an adapted financial-services skill pack inspired by Anthropic's Apache-2.0 research examples, giving agents stronger event-materiality, earnings-variance, valuation-comparability, competitive-landscape, and evidence-audit discipline while keeping IMPERIA DeepSeek-only and non-advisory.
 - Run the TradingAgents deep-research graph with market, fundamentals, news, social, SEC filings, macro, earnings, bull/bear debate, risk, trader, and portfolio-manager agents.
 
 ## How It Works
@@ -112,6 +113,12 @@ Open:
 http://localhost:8000/api/health
 ```
 
+Built-in frontend app:
+
+```text
+http://localhost:8000/app
+```
+
 ## Common API Calls
 
 ```bash
@@ -126,6 +133,7 @@ curl "http://localhost:8000/api/stock/AAPL/investor-checklist"
 curl "http://localhost:8000/api/compare?ticker_a=AMD&ticker_b=NVDA"
 curl "http://localhost:8000/api/health/providers"
 curl "http://localhost:8000/api/admin/status"
+curl "http://localhost:8000/api/admin/agent-methodology"
 curl "http://localhost:8000/api/admin/llm-usage"
 curl "http://localhost:8000/api/stock/AAPL/next-earnings"
 curl "http://localhost:8000/api/market/summary"
@@ -190,6 +198,8 @@ python scripts/smoke_test.py
 - [Redis](docs/REDIS.md)
 - [Research Streaming](docs/RESEARCH_STREAMING.md)
 - [Cost Tracking](docs/COST_TRACKING.md)
+- [Anthropic Financial Services Integration](docs/ANTHROPIC_FINANCIAL_SERVICES_INTEGRATION.md)
+- [Third-Party Notices](docs/THIRD_PARTY_NOTICES.md)
 - [Free US Finance Backend Notes](docs/backend_free_us_finance.md)
 
 ## Data Sources
@@ -217,6 +227,32 @@ IMPERIA implements production-style backend modules for Redis-backed caching/job
 
 ## Product Status
 
-IMPERIA is backend-first and production-hardened enough for local research workflows, API prototyping, and serious backend iteration. It does not currently ship a frontend; the old frontend scaffold was removed so a new interface can be built cleanly later.
+IMPERIA is backend-first and production-hardened enough for local research workflows, API prototyping, and serious backend iteration. The static frontend in `frontend/` is a local dashboard for exploring the backend; it does not add trading, brokerage, payments, or investment-advice functionality.
 
 Limitations: educational/research use only, not investment advice, no trading, no brokerage integration, US equities and major US ETFs only, free data may be delayed/incomplete/rate-limited, and AI output may be wrong and should be verified with citations.
+
+## Frontend
+
+Static SPA. Serve with:
+
+```bash
+python -m http.server 3000 --directory frontend
+```
+
+Then open:
+
+```text
+http://localhost:3000
+```
+
+Requires the IMPERIA backend running at:
+
+```text
+http://localhost:8000
+```
+
+For Codex preview sessions, the same static app can be served on another port, for example:
+
+```bash
+python -m http.server 6969 --directory frontend
+```

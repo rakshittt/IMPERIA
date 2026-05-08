@@ -52,13 +52,13 @@ def get_analyst_consensus(ticker: str) -> AnalystConsensus:
             warnings=[demo_provider.DEMO_WARNING, "Analyst consensus is third-party opinion data, not an IMPERIA recommendation."],
             citations=[demo_provider.demo_citation("analyst_consensus", f"{symbol} demo analyst consensus", ticker=symbol)],
         )
+    token = os.getenv("FINNHUB_API_KEY")
+    if not token:
+        return AnalystConsensus(ticker=symbol, warnings=["FINNHUB_API_KEY is not configured; analyst consensus unavailable."])
     cache = get_default_cache()
     cached = cache.get("analyst_consensus", symbol)
     if cached is not None:
         return AnalystConsensus.model_validate(cached)
-    token = os.getenv("FINNHUB_API_KEY")
-    if not token:
-        return AnalystConsensus(ticker=symbol, warnings=["FINNHUB_API_KEY is not configured; analyst consensus unavailable."])
     warnings: list[str] = []
     rec = safe_get_json(
         f"{FINNHUB_BASE_URL.rstrip('/')}/stock/recommendation",

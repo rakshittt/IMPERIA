@@ -31,7 +31,7 @@ def run(bundle: dict[str, Any], upstream: dict[str, dict[str, Any]] | None = Non
         agent_name="Balanced Thesis Agent",
         bundle=bundle,
         task="balanced_thesis",
-        summary="Balanced thesis combines bullish and bearish research views without a recommendation.",
+        summary="Balanced thesis combines bullish and bearish research views without action guidance.",
         key_findings=["Bull and bear views are evidence-based and non-advisory."],
         positive=positives[:5],
         negative=negatives[:5],
@@ -42,5 +42,10 @@ def run(bundle: dict[str, Any], upstream: dict[str, dict[str, Any]] | None = Non
         bull_view=bull,
         bear_view=bear,
         supporting_evidence={"bullish": positives[:5], "bearish": negatives[:5]},
-        balanced_takeaway="IMPERIA frames both sides as research factors, not buy/sell/hold advice.",
+        balanced_takeaway="IMPERIA frames both sides as research factors, not action-oriented advice.",
+        scenario_framework={
+            "constructive_case": "Requires cited positive evidence to persist and key risks to remain contained.",
+            "cautious_case": "Requires cited negative evidence or risk factors to remain material.",
+            "base_case": "Mixed or incomplete evidence requires source verification before drawing stronger conclusions.",
+        },
     )

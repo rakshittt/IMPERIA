@@ -58,4 +58,10 @@ def run(bundle: dict[str, Any], upstream: dict[str, dict[str, Any]] | None = Non
         recommended_warnings=warnings + bundle.get("warnings", [])[:5],
         final_answer_safe=final_safe,
         recommended_action=recommended_action,
+        methodology_checks=[
+            "Citation IDs were checked against the master registry.",
+            "Advice-language patterns were scanned before release.",
+            "Provider failures and missing required modules were translated into data-quality warnings.",
+            "Source comparability limits should remain visible in user-facing responses.",
+        ],
     )

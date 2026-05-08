@@ -22,7 +22,8 @@ from tradingagents.engine.stock_sentiment import get_stock_sentiment
 from tradingagents.expert_agents.agents import AGENT_FUNCTIONS
 from tradingagents.expert_agents.cache import AgentOutputCache, agent_cache_ttl
 from tradingagents.expert_agents.planner import plan_query, selected_agents_for_intent
-from tradingagents.expert_agents.prompts import AGENT_PROMPTS, UNIVERSAL_SYSTEM_PROMPT
+from tradingagents.expert_agents.prompts import agent_prompt, UNIVERSAL_SYSTEM_PROMPT
+from tradingagents.expert_agents.skill_pack import SKILL_PACK_VERSION, agent_method_prompt
 from tradingagents.persistence.usage import record_agent_run
 from tradingagents.schemas.agent_output import ExpertGraphResult
 from tradingagents.utils.deepseek import deepseek_text
@@ -30,6 +31,8 @@ from tradingagents.utils.safety import find_forbidden_phrases
 from tradingagents.utils.validation import normalize_ticker
 
 logger = logging.getLogger(__name__)
+
+EXPERT_GRAPH_CACHE_VERSION = "2026-05-07-llm-patch-refinement-v5"
 
 
 def _news_window(router_window: str) -> str:
@@ -68,7 +71,72 @@ class ExpertAgentRuntime:
 
     @staticmethod
     def _compact_bundle(bundle: dict[str, Any]) -> dict[str, Any]:
-        """Keep DeepSeek prompts bounded and evidence-only."""
+        """Build the DeepSeek evidence payload.
+
+        DeepSeek V4 can accept very large contexts, so IMPERIA no longer
+        enforces artificial token ceilings here. Set
+        ``IMPERIA_DEEPSEEK_COMPACT_CONTEXT=true`` only when running in a
+        constrained environment and wanting the previous compact prompt mode.
+        """
+
+        if os.getenv("IMPERIA_DEEPSEEK_COMPACT_CONTEXT", "false").strip().lower() not in {"1", "true", "yes", "on"}:
+            return bundle
+
+        def shorten(value: Any, limit: int = 260) -> Any:
+            if not isinstance(value, str):
+                return value
+            text = " ".join(value.split())
+            return text if len(text) <= limit else text[: limit - 1].rstrip() + "..."
+
+        def citation_ids(payload: dict[str, Any]) -> list[str]:
+            ids: list[str] = []
+            for citation in payload.get("citations", []) or []:
+                cid = citation.get("citation_id") or citation.get("id")
+                if cid:
+                    ids.append(cid)
+            return ids[:12]
+
+        def compact_citation(citation: dict[str, Any]) -> dict[str, Any]:
+            return {
+                "citation_id": citation.get("citation_id") or citation.get("id"),
+                "source_type": citation.get("source_type"),
+                "provider": citation.get("provider"),
+                "title": shorten(citation.get("title"), 140),
+                "published_at": citation.get("published_at") or citation.get("timestamp"),
+                "ticker": citation.get("ticker"),
+            }
+
+        def compact_news(item: dict[str, Any]) -> dict[str, Any]:
+            return {
+                "citation_id": item.get("citation_id"),
+                "title": shorten(item.get("title"), 150),
+                "source": item.get("source"),
+                "provider": item.get("provider"),
+                "published_at": item.get("published_at"),
+                "snippet": shorten(item.get("snippet") or item.get("summary"), 240),
+                "sentiment_label": item.get("sentiment_label"),
+            }
+
+        def compact_filings(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+            return [
+                {
+                    "accession_number": item.get("accession_number"),
+                    "filing_type": item.get("filing_type"),
+                    "filing_date": item.get("filing_date"),
+                    "report_date": item.get("report_date"),
+                    "title": item.get("primary_doc_description"),
+                    "citation_id": f"c_edgar_{item.get('accession_number') or index}",
+                }
+                for index, item in enumerate(items[:5])
+            ]
+
+        metrics = bundle.get("metrics") or {}
+        sentiment = bundle.get("sentiment") or {}
+        sentiment_signals = sentiment.get("signals") or {}
+        polymarket = bundle.get("polymarket") or {}
+        form4 = bundle.get("form4") or {}
+        thirteen_f = bundle.get("thirteen_f") or {}
+        holders = bundle.get("institutional_holders") or {}
 
         return {
             "ticker": bundle.get("ticker"),
@@ -76,21 +144,107 @@ class ExpertAgentRuntime:
             "intent": bundle.get("intent"),
             "window": bundle.get("window"),
             "quote": bundle.get("quote"),
-            "news": bundle.get("news", [])[:8],
-            "metrics": bundle.get("metrics"),
-            "filings": bundle.get("filings", [])[:5],
-            "earnings": bundle.get("earnings"),
-            "macro": bundle.get("macro"),
+            "news": [compact_news(item) for item in bundle.get("news", [])[:6]],
+            "metrics": {
+                "profile": metrics.get("profile"),
+                "metrics": metrics.get("metrics"),
+                "ttm": metrics.get("ttm"),
+                "balance_sheet_snapshot": metrics.get("balance_sheet_snapshot"),
+                "warnings": metrics.get("warnings", [])[:5],
+                "citation_ids": citation_ids(metrics),
+            },
+            "filings": compact_filings(bundle.get("filings", [])),
+            "earnings": {
+                "next": (bundle.get("earnings") or {}).get("next"),
+                "history": (bundle.get("earnings") or {}).get("history", [])[:4],
+                "stats": (bundle.get("earnings") or {}).get("stats"),
+                "warnings": (bundle.get("earnings") or {}).get("warnings", [])[:5],
+            },
+            "macro": {
+                "provider": (bundle.get("macro") or {}).get("provider"),
+                "indicators": (bundle.get("macro") or {}).get("indicators"),
+                "warnings": (bundle.get("macro") or {}).get("warnings", [])[:4],
+                "timestamp": (bundle.get("macro") or {}).get("timestamp"),
+                "citation_ids": citation_ids(bundle.get("macro") or {}),
+            },
             "peers": bundle.get("peers", {}).get("peers", [])[:5],
-            "sentiment": bundle.get("sentiment"),
-            "polymarket": bundle.get("polymarket"),
+            "sentiment": {
+                "sentiment_label": sentiment.get("sentiment_label"),
+                "confidence_score": sentiment.get("confidence_score"),
+                "summary": sentiment.get("summary"),
+                "news": sentiment_signals.get("news"),
+                "price_action": sentiment_signals.get("price_action"),
+                "earnings": sentiment_signals.get("earnings"),
+                "warnings": sentiment.get("warnings", [])[:5],
+                "citation_ids": citation_ids(sentiment),
+            },
+            "polymarket": {
+                "sentiment_label": polymarket.get("sentiment_label"),
+                "confidence_score": polymarket.get("confidence_score"),
+                "summary": polymarket.get("summary"),
+                "signals": polymarket.get("signals", [])[:3],
+                "warnings": polymarket.get("warnings", [])[:4],
+                "citation_ids": citation_ids(polymarket),
+            },
             "analyst_consensus": bundle.get("analyst_consensus"),
-            "form4": bundle.get("form4"),
-            "thirteen_f": bundle.get("thirteen_f"),
-            "institutional_holders": bundle.get("institutional_holders"),
-            "citations": bundle.get("citations", [])[:30],
-            "warnings": bundle.get("warnings", [])[:20],
+            "form4": {
+                "transactions": form4.get("transactions", [])[:5],
+                "warnings": form4.get("warnings", [])[:4],
+                "citation_ids": citation_ids(form4),
+            },
+            "thirteen_f": {
+                "filings": thirteen_f.get("filings", [])[:3],
+                "limitation": thirteen_f.get("limitation"),
+                "warnings": thirteen_f.get("warnings", [])[:4],
+                "citation_ids": citation_ids(thirteen_f),
+            },
+            "institutional_holders": {
+                "institutional_net_action": holders.get("institutional_net_action"),
+                "holders": holders.get("holders", [])[:5],
+                "warnings": holders.get("warnings", [])[:4],
+                "citation_ids": citation_ids(holders),
+            },
+            "citations": [compact_citation(citation) for citation in bundle.get("citations", [])[:18]],
+            "warnings": bundle.get("warnings", [])[:12],
         }
+
+    @staticmethod
+    def _compact_seed_output(output: dict[str, Any]) -> dict[str, Any]:
+        """Trim deterministic seed output before sending it to DeepSeek."""
+
+        compact: dict[str, Any] = {
+            "agent_name": output.get("agent_name"),
+            "ticker": output.get("ticker"),
+            "company_name": output.get("company_name"),
+            "task": output.get("task"),
+            "summary": output.get("summary"),
+            "key_findings": output.get("key_findings", [])[:7],
+            "positive_signals": output.get("positive_signals", [])[:5],
+            "negative_signals": output.get("negative_signals", [])[:5],
+            "uncertainties": output.get("uncertainties", [])[:5],
+            "confidence_score": output.get("confidence_score"),
+            "warnings": output.get("warnings", [])[:8],
+            "not_investment_advice": output.get("not_investment_advice", True),
+            "data_freshness": output.get("data_freshness"),
+        }
+        for key in (
+            "executive_summary",
+            "what_happened",
+            "why_it_matters",
+            "bullish_factors",
+            "bearish_factors",
+            "balanced_thesis",
+            "key_risks",
+            "what_to_watch_next",
+            "factors_to_research",
+            "final_research_summary",
+            "contributing_agents",
+        ):
+            if key in output:
+                value = output[key]
+                compact[key] = value[:7] if isinstance(value, list) else value
+        compact["citation_ids"] = output.get("citations", [])[:20]
+        return compact
 
     def _refine_with_deepseek(
         self,
@@ -102,25 +256,54 @@ class ExpertAgentRuntime:
         mode: str,
         research_id: str | None = None,
     ) -> dict[str, Any]:
-        if not self._deepseek_enabled() or agent_name == "evidence_auditor":
+        refinement_mode = os.getenv("IMPERIA_AGENT_LLM_REFINEMENT", "synthesis_only").strip().lower()
+        llm_allowed = refinement_mode == "all" or agent_name == "synthesizer"
+        if not self._deepseek_enabled() or agent_name == "evidence_auditor" or not llm_allowed:
             return deterministic
-        system = f"{UNIVERSAL_SYSTEM_PROMPT}\n\n{AGENT_PROMPTS.get(agent_name, '')}"
+        system = f"{UNIVERSAL_SYSTEM_PROMPT}\n\n{agent_prompt(agent_name)}\n\n{agent_method_prompt(agent_name)}"
+        patch_fields = [
+            "summary",
+            "key_findings",
+            "positive_signals",
+            "negative_signals",
+            "uncertainties",
+            "confidence_score",
+            "executive_summary",
+            "what_happened",
+            "why_it_matters",
+            "bullish_factors",
+            "bearish_factors",
+            "balanced_thesis",
+            "key_risks",
+            "what_to_watch_next",
+            "factors_to_research",
+            "final_research_summary",
+            "warnings",
+        ]
         compact = {
             "data_bundle": self._compact_bundle(bundle),
             "upstream_agent_outputs": {name: {"summary": row.get("summary"), "key_findings": row.get("key_findings", [])[:5], "warnings": row.get("warnings", [])[:5]} for name, row in upstream.items()},
-            "deterministic_seed_output": deterministic,
-            "required_base_fields": list(deterministic.keys()),
+            "deterministic_seed_output": self._compact_seed_output(deterministic),
+            "allowed_patch_fields": patch_fields,
         }
         messages = [
             {"role": "system", "content": system},
-            {"role": "user", "content": "Return a single JSON object. Use only this DATA BUNDLE:\n" + json.dumps(compact, default=str, separators=(",", ":"))},
+            {
+                "role": "user",
+                "content": (
+                    "Return a compact JSON patch, not the full final schema. "
+                    "Use only allowed_patch_fields. "
+                    "Preserve inline [cit:ID] citations only when the ID appears in the DATA BUNDLE. "
+                    "Do not include the citation registry or markdown. DATA BUNDLE:\n"
+                    + json.dumps(compact, default=str, separators=(",", ":"))
+                ),
+            },
         ]
         for attempt in range(2):
             text = deepseek_text(
                 messages,
                 mode="deep" if mode == "deep" else "fast",
                 temperature=0.1,
-                max_tokens=1600,
                 agent_name=agent_name,
                 ticker=bundle.get("ticker"),
                 intent=bundle.get("intent"),
@@ -133,30 +316,25 @@ class ExpertAgentRuntime:
             except json.JSONDecodeError:
                 messages.append({"role": "user", "content": "The previous output was invalid JSON. Re-emit valid JSON only with no markdown."})
                 continue
-            required = set(deterministic) & {
-                "agent_name",
-                "ticker",
-                "company_name",
-                "task",
-                "summary",
-                "key_findings",
-                "positive_signals",
-                "negative_signals",
-                "uncertainties",
-                "confidence_score",
-                "citations",
-                "warnings",
-                "not_investment_advice",
-                "generated_at",
-                "data_freshness",
-            }
-            if not required.issubset(candidate) or candidate.get("not_investment_advice") is not True:
-                messages.append({"role": "user", "content": "The previous output failed the universal schema. Re-emit all required base fields exactly."})
+            if not isinstance(candidate, dict) or candidate.get("not_investment_advice", True) is not True:
+                messages.append({"role": "user", "content": "The previous output failed validation. Re-emit a compact JSON patch object only."})
                 continue
             violations = find_forbidden_phrases(json.dumps(candidate, default=str))
             if violations:
                 return {**deterministic, "warnings": deterministic.get("warnings", []) + ["DeepSeek output failed safety validation; deterministic agent output used."]}
-            return candidate
+            merged = dict(deterministic)
+            for key, value in candidate.items():
+                if key in patch_fields and key in merged and value not in (None, ""):
+                    merged[key] = value
+            merged["agent_name"] = deterministic.get("agent_name", merged.get("agent_name"))
+            merged["ticker"] = deterministic.get("ticker", merged.get("ticker"))
+            merged["company_name"] = deterministic.get("company_name", merged.get("company_name"))
+            merged["task"] = deterministic.get("task", merged.get("task"))
+            merged["generated_at"] = deterministic.get("generated_at", merged.get("generated_at"))
+            merged["data_freshness"] = deterministic.get("data_freshness", merged.get("data_freshness"))
+            merged["not_investment_advice"] = True
+            merged["warnings"] = sorted({*(deterministic.get("warnings", []) or []), *(candidate.get("warnings", []) or [])})
+            return merged
         return {**deterministic, "warnings": deterministic.get("warnings", []) + ["DeepSeek JSON validation failed; deterministic agent output used."]}
 
     def assemble_evidence_bundle(self, ticker: str, *, query: str, intent: str, window: str) -> dict[str, Any]:
@@ -238,10 +416,15 @@ class ExpertAgentRuntime:
             warnings.append(f"Earnings data unavailable ({type(exc).__name__}).")
             mark("earnings", "failed", error=type(exc).__name__)
 
-        macro = get_macro_indicators().model_dump()
-        warnings.extend(macro.get("warnings", []))
-        citations.extend(macro.get("citations", []))
-        mark("FRED", "ok" if macro.get("indicators") else "unconfigured", count=len(macro.get("indicators", {})))
+        try:
+            macro = get_macro_indicators().model_dump()
+            warnings.extend(macro.get("warnings", []))
+            citations.extend(macro.get("citations", []))
+            mark("FRED", "ok" if macro.get("indicators") else "unconfigured", count=len(macro.get("indicators", {})))
+        except Exception as exc:
+            warnings.append(f"Macro indicators unavailable ({type(exc).__name__}).")
+            macro = {"warnings": [], "citations": [], "indicators": {}}
+            mark("FRED", "failed", error=type(exc).__name__)
 
         sectors: list[dict[str, Any]] = []
         try:
@@ -252,40 +435,75 @@ class ExpertAgentRuntime:
             warnings.append(f"Sector ETF context unavailable ({type(exc).__name__}).")
             mark("sector_etfs", "failed", error=type(exc).__name__)
 
-        peers = get_peer_comparison(symbol).model_dump()
-        warnings.extend(peers.get("warnings", []))
-        citations.extend(peers.get("citations", []))
-        mark("peer_comparison", "ok" if peers.get("peers") else "partial", count=len(peers.get("peers", [])))
+        try:
+            peers = get_peer_comparison(symbol).model_dump()
+            warnings.extend(peers.get("warnings", []))
+            citations.extend(peers.get("citations", []))
+            mark("peer_comparison", "ok" if peers.get("peers") else "partial", count=len(peers.get("peers", [])))
+        except Exception as exc:
+            warnings.append(f"Peer comparison unavailable ({type(exc).__name__}).")
+            peers = {"warnings": [], "citations": [], "peers": []}
+            mark("peer_comparison", "failed", error=type(exc).__name__)
 
-        sentiment = get_stock_sentiment(symbol, window=news_window).model_dump()
-        warnings.extend(sentiment.get("warnings", []))
-        citations.extend(sentiment.get("citations", []))
-        mark("stock_sentiment", "ok", count=1)
+        try:
+            sentiment = get_stock_sentiment(symbol, window=news_window).model_dump()
+            warnings.extend(sentiment.get("warnings", []))
+            citations.extend(sentiment.get("citations", []))
+            mark("stock_sentiment", "ok", count=1)
+        except Exception as exc:
+            warnings.append(f"Stock sentiment unavailable ({type(exc).__name__}).")
+            sentiment = {"warnings": [], "citations": []}
+            mark("stock_sentiment", "failed", error=type(exc).__name__)
 
-        polymarket = get_polymarket_sentiment(symbol, metrics.get("profile", {}).get("name") or symbol).model_dump()
-        warnings.extend(polymarket.get("warnings", []))
-        citations.extend(polymarket.get("citations", []))
-        mark("polymarket", "ok" if polymarket.get("signals") else "missing", count=len(polymarket.get("signals", [])))
+        try:
+            polymarket = get_polymarket_sentiment(symbol, metrics.get("profile", {}).get("name") or symbol).model_dump()
+            warnings.extend(polymarket.get("warnings", []))
+            citations.extend(polymarket.get("citations", []))
+            mark("polymarket", "ok" if polymarket.get("signals") else "missing", count=len(polymarket.get("signals", [])))
+        except Exception as exc:
+            warnings.append(f"Polymarket sentiment unavailable ({type(exc).__name__}).")
+            polymarket = {"warnings": [], "citations": [], "signals": []}
+            mark("polymarket", "failed", error=type(exc).__name__)
 
-        analyst = get_analyst_consensus(symbol).model_dump()
-        warnings.extend(analyst.get("warnings", []))
-        citations.extend(analyst.get("citations", []))
-        mark("analyst_consensus", "ok" if analyst.get("buy_count") is not None else "unconfigured", count=1 if analyst.get("buy_count") is not None else 0)
+        try:
+            analyst = get_analyst_consensus(symbol).model_dump()
+            warnings.extend(analyst.get("warnings", []))
+            citations.extend(analyst.get("citations", []))
+            mark("analyst_consensus", "ok" if analyst.get("buy_count") is not None else "unconfigured", count=1 if analyst.get("buy_count") is not None else 0)
+        except Exception as exc:
+            warnings.append(f"Analyst consensus unavailable ({type(exc).__name__}).")
+            analyst = {"warnings": [], "citations": [], "buy_count": None}
+            mark("analyst_consensus", "failed", error=type(exc).__name__)
 
-        form4 = get_form4_activity(symbol).model_dump()
-        warnings.extend(form4.get("warnings", []))
-        citations.extend(form4.get("citations", []))
-        mark("form4_parser", "ok" if form4.get("transactions") else "missing", count=len(form4.get("transactions", [])))
+        try:
+            form4 = get_form4_activity(symbol).model_dump()
+            warnings.extend(form4.get("warnings", []))
+            citations.extend(form4.get("citations", []))
+            mark("form4_parser", "ok" if form4.get("transactions") else "missing", count=len(form4.get("transactions", [])))
+        except Exception as exc:
+            warnings.append(f"Form-4 filings unavailable ({type(exc).__name__}).")
+            form4 = {"warnings": [], "citations": [], "transactions": []}
+            mark("form4_parser", "failed", error=type(exc).__name__)
 
-        thirteen_f = get_thirteen_f_activity(symbol).model_dump()
-        warnings.extend(thirteen_f.get("warnings", []))
-        citations.extend(thirteen_f.get("citations", []))
-        mark("thirteen_f_parser", "ok" if thirteen_f.get("filings") else "missing", count=len(thirteen_f.get("filings", [])))
+        try:
+            thirteen_f = get_thirteen_f_activity(symbol).model_dump()
+            warnings.extend(thirteen_f.get("warnings", []))
+            citations.extend(thirteen_f.get("citations", []))
+            mark("thirteen_f_parser", "ok" if thirteen_f.get("filings") else "missing", count=len(thirteen_f.get("filings", [])))
+        except Exception as exc:
+            warnings.append(f"13-F filings unavailable ({type(exc).__name__}).")
+            thirteen_f = {"warnings": [], "citations": [], "filings": []}
+            mark("thirteen_f_parser", "failed", error=type(exc).__name__)
 
-        holders = get_institutional_holder_analysis(symbol).model_dump()
-        warnings.extend(holders.get("warnings", []))
-        citations.extend(holders.get("citations", []))
-        mark("institutional_holders", "ok" if holders.get("holders") else "missing", count=len(holders.get("holders", [])))
+        try:
+            holders = get_institutional_holder_analysis(symbol).model_dump()
+            warnings.extend(holders.get("warnings", []))
+            citations.extend(holders.get("citations", []))
+            mark("institutional_holders", "ok" if holders.get("holders") else "missing", count=len(holders.get("holders", [])))
+        except Exception as exc:
+            warnings.append(f"Institutional holders unavailable ({type(exc).__name__}).")
+            holders = {"warnings": [], "citations": [], "holders": []}
+            mark("institutional_holders", "failed", error=type(exc).__name__)
 
         seen: set[str] = set()
         deduped_citations: list[dict[str, Any]] = []
@@ -324,7 +542,18 @@ class ExpertAgentRuntime:
 
     def run_agent(self, agent_name: str, bundle: dict[str, Any], upstream: dict[str, dict[str, Any]], *, mode: str, research_id: str | None = None) -> dict[str, Any]:
         started = time.perf_counter()
-        cache_key = self.cache.make_key(agent_name, bundle["ticker"], bundle["intent"], bundle["window"], {"bundle": bundle, "upstream": upstream})
+        cache_key = self.cache.make_key(
+            agent_name,
+            bundle["ticker"],
+            bundle["intent"],
+            bundle["window"],
+            {
+                "bundle": bundle,
+                "upstream": upstream,
+                "skill_pack_version": SKILL_PACK_VERSION,
+                "runtime_cache_version": EXPERT_GRAPH_CACHE_VERSION,
+            },
+        )
         cached = self.cache.get(cache_key)
         if cached is not None:
             record_agent_run(agent_name=agent_name, ticker=bundle["ticker"], intent=bundle["intent"], mode=mode, status="cached", cache_hit=True, research_id=research_id)
@@ -384,7 +613,13 @@ class ExpertAgentRuntime:
             result = self.run_agent(agent_name, bundle, outputs, mode=actual_mode, research_id=research_id)
             outputs[agent_name] = result
             if emit_event:
-                emit_event("agent_completed" if not result.get("warnings", [""])[0].startswith("agent_failed") else "agent_failed", agent=agent_name, warnings=result.get("warnings", []))
+                result_warnings = result.get("warnings", [])
+                first_warning = result_warnings[0] if result_warnings else ""
+                emit_event(
+                    "agent_completed" if not str(first_warning).startswith("agent_failed") else "agent_failed",
+                    agent=agent_name,
+                    warnings=result_warnings,
+                )
         final = outputs.get("synthesizer", {})
         audit = outputs.get("evidence_auditor", {})
         data_quality = audit.get("data_quality") or ("partial" if bundle.get("warnings") else "good")

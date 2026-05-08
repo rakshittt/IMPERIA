@@ -6,21 +6,26 @@ import os
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from tradingagents.api.deps import require_api_key
 from tradingagents.api.responses import standard_response
 from tradingagents.cache.redis_cache import redis_status
 from tradingagents.cache.sqlite_cache import get_default_cache
 from tradingagents.dataflows.provider_registry import configured_provider_status
+from tradingagents.expert_agents.skill_pack import agent_methods_for_response
 from tradingagents.persistence.portfolio import list_research_results
 from tradingagents.persistence.usage import list_agent_runs, list_errors, list_llm_usage, llm_usage_summary
 from tradingagents.workers.background_jobs import MAX_WORKERS
 
-router = APIRouter(prefix="/api/admin", tags=["admin"])
+router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_api_key)])
 
 
 def _admin_warning() -> list[str]:
-    return ["Admin APIs are intended for local/demo backend development; no authentication layer is implemented."]
+    configured = bool(os.getenv("IMPERIA_API_KEY", "").strip())
+    if configured:
+        return ["Admin APIs are protected by X-API-Key."]
+    return ["Admin APIs have no authentication set. Set IMPERIA_API_KEY to enable key-based access control."]
 
 
 @router.get("/status")
@@ -65,6 +70,11 @@ async def admin_research_jobs(limit: int = 100):
 @router.get("/agent-runs")
 async def admin_agent_runs(limit: int = 100):
     return standard_response({"agent_runs": list_agent_runs(limit=limit)}, warnings=_admin_warning(), mode="admin", intent="agent_runs", data_quality="good")
+
+
+@router.get("/agent-methodology")
+async def admin_agent_methodology():
+    return standard_response(agent_methods_for_response(), warnings=_admin_warning(), mode="admin", intent="agent_methodology", data_quality="good")
 
 
 @router.get("/llm-usage")

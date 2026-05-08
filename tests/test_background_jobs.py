@@ -77,3 +77,37 @@ def test_submit_returns_queued_status(persistence_db):
 
     job = background_jobs.submit_research_job(runner, [], None, {}, research_id="fixed")
     assert job == {"research_id": "fixed", "id": "fixed", "status": "queued"}
+
+
+@pytest.mark.unit
+def test_concurrent_submissions_no_race(persistence_db):
+    """Submit multiple jobs concurrently and verify _FUTURES dict stays consistent."""
+    import threading
+
+    results: list[dict] = []
+    errors: list[Exception] = []
+
+    def runner(portfolio, analysis_date, profile, research_id):
+        time.sleep(0.01)
+        return {"id": research_id, "status": "completed"}
+
+    def submit(idx: int) -> None:
+        try:
+            job = background_jobs.submit_research_job(runner, [{"ticker": "AAPL"}], None, {}, research_id=f"concurrent-{idx}")
+            results.append(job)
+        except Exception as exc:
+            errors.append(exc)
+
+    threads = [threading.Thread(target=submit, args=(i,)) for i in range(10)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors, f"Thread errors: {errors}"
+    assert len(results) == 10
+    # All job IDs should be unique and retrievable
+    for idx in range(10):
+        rid = f"concurrent-{idx}"
+        job = background_jobs.get_research_job(rid)
+        assert job is not None, f"Job {rid} missing from store"

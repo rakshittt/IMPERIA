@@ -47,6 +47,10 @@ htmlcov/
 .coverage.*
 .cache
 .cache/
+*.sqlite
+*.sqlite3
+*.db
+.tradingagents_data/
 nosetests.xml
 coverage.xml
 *.cover

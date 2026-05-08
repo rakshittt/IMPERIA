@@ -8,8 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
 from tradingagents.api.responses import standard_response
@@ -54,7 +53,7 @@ async def get_snapshot(snapshot_id: str):
     try:
         record = get_portfolio_snapshot(snapshot_id)
     except KeyError:
-        return JSONResponse({"error": "portfolio snapshot not found"}, status_code=404)
+        raise HTTPException(status_code=404, detail="Portfolio snapshot not found.")
     return standard_response(record.model_dump(), mode="fast", intent="portfolio_snapshot", data_quality="good")
 
 
@@ -63,5 +62,5 @@ async def delete_snapshot(snapshot_id: str):
     try:
         delete_portfolio_snapshot(snapshot_id)
     except KeyError:
-        return JSONResponse({"error": "portfolio snapshot not found"}, status_code=404)
+        raise HTTPException(status_code=404, detail="Portfolio snapshot not found.")
     return standard_response({"deleted": True, "id": snapshot_id}, mode="fast", intent="portfolio_snapshot", data_quality="good")

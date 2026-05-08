@@ -17,7 +17,7 @@ from tradingagents.utils.deepseek import deepseek_text
 
 logger = logging.getLogger(__name__)
 
-MAX_UNCACHED_FETCHES = 50
+MAX_UNCACHED_FETCHES = int(os.getenv("IMPERIA_SCREENER_MAX_UNCACHED_FETCHES", "20"))
 
 
 class ScreenerCriteria(BaseModel):
@@ -130,6 +130,8 @@ def _deterministic_parse(query: str) -> ScreenerCriteria:
 
 def parse_nl_screener_query(query: str) -> ScreenerCriteria:
     criteria = _deterministic_parse(query)
+    if criteria.has_active_filters():
+        return criteria
     api_key = os.getenv("DEEPSEEK_API_KEY")
     if not api_key:
         return criteria
@@ -141,8 +143,7 @@ def parse_nl_screener_query(query: str) -> ScreenerCriteria:
             ],
             mode="fast",
             temperature=0,
-            max_tokens=300,
-            timeout=15,
+            timeout=(3, 8),
         )
         if not content:
             return criteria

@@ -30,7 +30,7 @@ def run(bundle: dict[str, Any], upstream: dict[str, dict[str, Any]] | None = Non
     )
     final = ensure_disclaimer(
         f"Based on the provided evidence, {ticker} should be researched through price action, recent news, fundamentals, filings, earnings, market context, and risk factors. "
-        "This output is source-cited where citations are available and intentionally avoids buy/sell/hold recommendations."
+        "This output is source-cited where citations are available and intentionally avoids action-oriented recommendations."
     )
     balanced = upstream.get("balanced_thesis", {})
     factors = upstream.get("research_factors", {})

@@ -35,4 +35,11 @@ def run(bundle: dict[str, Any], upstream: dict[str, dict[str, Any]] | None = Non
         multiple_context={"pe": pe, "forward_pe": forward_pe, "ev_to_ebitda": ev_to_ebitda, "market_cap": metrics_payload.get("market_cap")},
         growth_adjusted_interpretation=f"Revenue growth input is {revenue_growth}; valuation interpretation is limited if growth data is missing.",
         peer_relative_position="unknown",
+        comps_discipline=[
+            "Peer-relative interpretation is marked unknown until comparable peer multiples are present.",
+            "Current multiples are interpreted with growth context and missing denominator warnings.",
+        ],
+        outlier_flags=[
+            "P/E exceeds 45." if pe and pe > 45 else "No deterministic valuation outlier was confirmed from available multiples.",
+        ],
     )

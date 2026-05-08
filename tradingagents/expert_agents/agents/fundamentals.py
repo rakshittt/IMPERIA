@@ -54,4 +54,12 @@ def run(bundle: dict[str, Any], upstream: dict[str, dict[str, Any]] | None = Non
         fundamental_strengths=positives or ["No strong fundamental strength could be confirmed from available data."],
         fundamental_weaknesses=negatives or ["No severe fundamental weakness could be confirmed from available data."],
         overall_fundamental_view="bullish" if positives and not negatives else "bearish" if negatives and not positives else "mixed",
+        quality_checks=[
+            "Growth, profitability, cash conversion, balance-sheet, and liquidity inputs were reviewed together.",
+            "Missing ratios remain null in source metrics and are represented through warnings.",
+        ],
+        source_quality_notes=[
+            "Computed metrics should be verified against cited SEC/yfinance source facts.",
+            "Fundamental conclusions are limited when trailing statement coverage is incomplete.",
+        ],
     )

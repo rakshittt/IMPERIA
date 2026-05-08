@@ -24,10 +24,19 @@ def run(bundle: dict[str, Any], upstream: dict[str, dict[str, Any]] | None = Non
         agent_name="Research Factors Agent",
         bundle=bundle,
         task="research_factors",
-        summary="Educational research factors are provided without pass/fail verdicts or allocation advice.",
+        summary="Educational research factors are provided without verdict-style scoring or allocation advice.",
         key_findings=factors["what_to_verify_next"],
         citations=citations,
         warnings=[],
         confidence=60 if citations else 20,
+        catalyst_calendar_questions=[
+            "Which upcoming earnings, filing, product, regulatory, or macro events could change the research picture?",
+            "Which cited news events need confirmation from official filings or company disclosures?",
+        ],
+        disconfirming_evidence_to_track=[
+            "Evidence that weakens the constructive scenario.",
+            "Evidence that weakens the cautious scenario.",
+            "New data that changes valuation, margins, liquidity, earnings quality, or regulatory risk.",
+        ],
         **factors,
     )

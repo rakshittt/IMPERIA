@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from tradingagents.expert_agents.skill_pack import methodology_for_agent
 from tradingagents.schemas.agent_output import BaseAgentOutput, DataFreshness
 from tradingagents.utils.confidence import adjust_confidence
 
@@ -30,7 +31,10 @@ def freshness_from_bundle(bundle: dict[str, Any]) -> DataFreshness:
         if not raw:
             continue
         try:
-            timestamps.append(datetime.fromisoformat(str(raw).replace("Z", "+00:00")))
+            parsed = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=timezone.utc)
+            timestamps.append(parsed.astimezone(timezone.utc))
         except ValueError:
             pass
     for warning in bundle.get("warnings", []):
@@ -77,6 +81,7 @@ def output(
         generated_at=datetime.now(timezone.utc),
         data_freshness=freshness,
     ).model_dump(mode="json")
+    custom.setdefault("methodology", methodology_for_agent(agent_name))
     base.update(custom)
     return base
 

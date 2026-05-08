@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import re
 from datetime import datetime
 from typing import Any
 
@@ -14,8 +16,11 @@ from tradingagents.api.services import run_deep_research, run_stock_expert_resea
 from tradingagents.engine.query_router import route_query
 from tradingagents.engine.safety import assess_query, reframe_prompt, sanitize_answer
 from tradingagents.engine import stock_intelligence
+from tradingagents.dataflows import market_data
 from tradingagents.expert_agents.planner import plan_query
 from tradingagents.expert_agents.runtime import ExpertAgentRuntime
+from tradingagents.utils.deepseek import deepseek_text
+from tradingagents.utils.validation import normalize_ticker
 from tradingagents.workers.background_jobs import submit_research_job
 
 router = APIRouter(prefix="/api", tags=["ai"])
@@ -85,6 +90,128 @@ def _expert_fast_response(query: str, ticker: str, *, window: str | None = None)
     )
     response.update({"mode": "fast", "answer": answer, "ticker": result.ticker})
     return response
+
+
+def _extract_json_block(text: str) -> dict[str, Any]:
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        return {}
+    try:
+        payload = json.loads(match.group(0))
+        return payload if isinstance(payload, dict) else {}
+    except Exception:
+        return {}
+
+
+def _run_selected_api(api_name: str, args: dict[str, Any], *, fallback_ticker: str, fallback_window: str) -> dict[str, Any]:
+    engine = get_fast_engine()
+    ticker = normalize_ticker(str(args.get("ticker") or fallback_ticker))
+    window = str(args.get("window") or fallback_window)
+    limit = int(args.get("limit") or 10)
+
+    if api_name == "stock_summary":
+        return stock_intelligence.build_research_snapshot(ticker, window=window)
+    if api_name == "stock_what_happened":
+        return stock_intelligence.build_what_happened(ticker, window=window)
+    if api_name == "stock_sentiment":
+        return stock_intelligence.get_stock_sentiment(ticker, window=window).model_dump()
+    if api_name == "stock_risks":
+        return stock_intelligence.build_risks(ticker)
+    if api_name == "stock_news":
+        return {"ticker": ticker, "window": window, "news": engine.get_news(ticker, limit=limit)}
+    if api_name == "stock_ratios":
+        return engine.get_ratios(ticker)
+    if api_name == "market_summary":
+        return {
+            "indices": [item.model_dump() for item in market_data.get_market_indices()],
+            "movers": market_data.get_market_movers(n=5).model_dump(),
+            "breadth": market_data.get_market_breadth().model_dump(),
+        }
+    if api_name == "compare":
+        left = normalize_ticker(str(args.get("ticker_a") or "AMD"))
+        right = normalize_ticker(str(args.get("ticker_b") or "NVDA"))
+        return stock_intelligence.compare_stocks(left, right)
+    if api_name == "earnings_brief":
+        return stock_intelligence.build_earnings_brief(ticker)
+    if api_name == "filing_brief":
+        return stock_intelligence.build_filing_brief(ticker)
+    if api_name == "investor_checklist":
+        return stock_intelligence.build_investor_checklist(ticker)
+
+    return {"error": f"Unsupported api_name: {api_name}"}
+
+
+@router.post("/agent/analyst")
+async def analyst_agent(request: Request):
+    payload = await request.json()
+    query = str(payload.get("query") or "").strip()
+    if not query:
+        return JSONResponse({"error": "query is required"}, status_code=422)
+    ticker = normalize_ticker(str(payload.get("ticker") or "AAPL"))
+    window = str(payload.get("window") or "today")
+
+    tool_catalog = [
+        "stock_summary",
+        "stock_what_happened",
+        "stock_sentiment",
+        "stock_risks",
+        "stock_news",
+        "stock_ratios",
+        "market_summary",
+        "compare",
+        "earnings_brief",
+        "filing_brief",
+        "investor_checklist",
+    ]
+
+    planner_prompt = (
+        "You are a routing planner for a stock research backend.\n"
+        f"User query: {query}\n"
+        f"Default ticker: {ticker}\n"
+        f"Default window: {window}\n"
+        f"Available tools: {', '.join(tool_catalog)}.\n"
+        "Return strict JSON only with this schema:\n"
+        '{"apis":[{"api_name":"stock_summary","args":{"ticker":"AAPL","window":"today"}}],"reason":"short reason"}\n'
+        "Pick 1-4 tools max."
+    )
+    planned_text = deepseek_text([{"role": "user", "content": planner_prompt}], mode="fast", temperature=0.1)
+    plan = _extract_json_block(planned_text or "")
+    selected = plan.get("apis") if isinstance(plan.get("apis"), list) else []
+    if not selected:
+        selected = [{"api_name": "stock_summary", "args": {"ticker": ticker, "window": window}}]
+
+    executed: list[dict[str, Any]] = []
+    for item in selected[:4]:
+        api_name = str(item.get("api_name") or "").strip()
+        args = item.get("args") if isinstance(item.get("args"), dict) else {}
+        if not api_name:
+            continue
+        try:
+            result = _run_selected_api(api_name, args, fallback_ticker=ticker, fallback_window=window)
+            executed.append({"api_name": api_name, "args": args, "result": result})
+        except Exception as exc:
+            executed.append({"api_name": api_name, "args": args, "error": f"{type(exc).__name__}: {exc}"})
+
+    formatter_prompt = (
+        "You are a Wall Street equity research analyst.\n"
+        "Write a concise natural-language response with:\n"
+        "1) Thesis\n2) What data says\n3) Risks\n4) What to watch next.\n"
+        "Do not provide investment advice. Keep it factual and source-grounded.\n\n"
+        f"User query: {query}\n"
+        f"API execution results JSON:\n{json.dumps(executed, default=str)}"
+    )
+    analyst_text = deepseek_text([{"role": "user", "content": formatter_prompt}], mode="deep", temperature=0.2)
+    if not analyst_text:
+        analyst_text = "I could not generate an analyst-style narrative right now. Please retry."
+
+    return {
+        "query": query,
+        "ticker": ticker,
+        "window": window,
+        "plan": {"reason": plan.get("reason"), "apis": selected},
+        "api_runs": executed,
+        "analyst_response": sanitize_answer(analyst_text),
+    }
 
 
 @router.post("/ask")

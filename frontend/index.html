@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IMPERIA | Source-cited AI research for US stocks</title>
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./style.css" />
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script defer src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script defer src="./app.js"></script>
+  </head>
+  <body>
+    <div id="offline-banner" class="offline-banner hidden">
+      <span>IMPERIA backend is offline. Run: <code>uvicorn api:app --reload</code></span>
+      <button id="dismiss-offline" class="icon-button" aria-label="Dismiss offline banner">
+        <i data-lucide="x"></i>
+      </button>
+    </div>
+
+    <aside class="sidebar" aria-label="Primary navigation">
+      <div class="brand">
+        <div class="brand-mark">I</div>
+        <div>
+          <strong>IMPERIA</strong>
+          <span>Source-cited stock research</span>
+        </div>
+      </div>
+      <nav class="nav-list">
+        <a href="#home" data-route="home"><i data-lucide="activity"></i><span>Home</span></a>
+        <a href="#stock" data-route="stock"><i data-lucide="search"></i><span>Stock Research</span></a>
+        <a href="#screener" data-route="screener"><i data-lucide="sliders-horizontal"></i><span>Screener</span></a>
+        <a href="#watchlist" data-route="watchlist"><i data-lucide="star"></i><span>Watchlist</span></a>
+        <a href="#research" data-route="research"><i data-lucide="brain-circuit"></i><span>Deep Research</span></a>
+        <a href="#compare" data-route="compare"><i data-lucide="scale"></i><span>Compare</span></a>
+        <a href="#admin" data-route="admin"><i data-lucide="server-cog"></i><span>Admin</span></a>
+      </nav>
+      <div class="scope-note">
+        <span>US equities and major ETFs only.</span>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <form id="global-search-form" class="top-search" autocomplete="off">
+        <i data-lucide="search"></i>
+        <input id="global-search" type="search" placeholder="Search stocks, e.g. Apple, NVDA, Tesla..." />
+        <div id="global-suggestions" class="suggestions hidden"></div>
+      </form>
+      <div class="top-actions">
+        <span id="provider-pill" class="status-pill muted">
+          <span class="status-dot"></span>
+          Checking
+        </span>
+        <button id="theme-toggle" class="icon-button" aria-label="Toggle light or dark mode">
+          <i data-lucide="sun"></i>
+        </button>
+      </div>
+    </header>
+
+    <main id="app" class="app-shell" tabindex="-1"></main>
+
+    <template id="error-template">
+      <div class="error-card">
+        <div>
+          <strong></strong>
+          <p></p>
+        </div>
+        <button class="small-button">Retry</button>
+      </div>
+    </template>
+  </body>
+</html>

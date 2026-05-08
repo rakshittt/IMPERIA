@@ -36,4 +36,17 @@ def run(bundle: dict[str, Any], upstream: dict[str, dict[str, Any]] | None = Non
         earnings_quality="Earnings quality requires revenue, EPS, margin, and guidance context; available free data may be partial.",
         guidance_trajectory="unavailable",
         what_to_watch=["EPS versus estimate", "Revenue versus estimate", "Margin commentary", "Guidance tone", "Management discussion of demand"],
+        variance_framework={
+            "reported_history_count": len(history),
+            "beats": beats,
+            "misses": misses,
+            "estimate_context_available": bool(next_event),
+            "guidance_context_available": False,
+        },
+        pre_earnings_watchlist=[
+            "Consensus EPS and revenue versus reported results",
+            "Margin and free-cash-flow commentary",
+            "Guidance tone and demand commentary",
+            "Any one-time items disclosed in the release or filing",
+        ],
     )

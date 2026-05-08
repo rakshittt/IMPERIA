@@ -8,9 +8,12 @@ status instead of breaking deterministic endpoints.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from dataclasses import dataclass
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -36,6 +39,11 @@ class RedisCache:
         except Exception as exc:
             self._client = None
             self._error = f"{type(exc).__name__}: {exc}"
+            logger.warning(
+                "redis_connection_failed url=%s error=%s -- falling back to SQLite cache",
+                self.url,
+                self._error,
+            )
 
     @property
     def available(self) -> bool:

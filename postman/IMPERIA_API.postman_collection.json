@@ -1,0 +1,685 @@
+{
+  "info": {
+    "name": "IMPERIA Finance Intelligence API",
+    "_postman_id": "b84a1289-5e4d-4b14-a7b8-e3de28d7d332",
+    "description": "Postman collection for the IMPERIA FastAPI backend. Organized by app flow: health/discovery -> market and stock intelligence -> AI and deep research -> persistence and admin observability.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "ticker",
+      "value": "AAPL"
+    },
+    {
+      "key": "tickerA",
+      "value": "AMD"
+    },
+    {
+      "key": "tickerB",
+      "value": "NVDA"
+    },
+    {
+      "key": "watchlistId",
+      "value": ""
+    },
+    {
+      "key": "snapshotId",
+      "value": ""
+    },
+    {
+      "key": "researchId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health & System",
+      "item": [
+        {
+          "name": "Root",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/"
+          }
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/health"
+          }
+        },
+        {
+          "name": "Health - Providers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/health/providers"
+          }
+        },
+        {
+          "name": "Health - LLM",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/health/llm"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Discovery & Search",
+      "item": [
+        {
+          "name": "Search Tickers/Companies",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/search?q=Apple&limit=10"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Market Overview",
+      "item": [
+        {
+          "name": "Market Indices",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market/indices"
+          }
+        },
+        {
+          "name": "Market Movers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market/movers?limit=10"
+          }
+        },
+        {
+          "name": "Market Breadth",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market/breadth"
+          }
+        },
+        {
+          "name": "Sector Performance",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market/sectors"
+          }
+        },
+        {
+          "name": "Market Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market/summary"
+          }
+        },
+        {
+          "name": "Compat - Trending",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/trending"
+          }
+        },
+        {
+          "name": "Compat - Market Snapshot",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/market-snapshot"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Stock Intelligence",
+      "item": [
+        {
+          "name": "Stock Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/profile"
+          }
+        },
+        {
+          "name": "Stock Financials",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/financials"
+          }
+        },
+        {
+          "name": "Stock Ratios",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/ratios"
+          }
+        },
+        {
+          "name": "Stock Chart",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/chart?period=1mo&interval=1d"
+          }
+        },
+        {
+          "name": "Stock Intraday",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/intraday?interval=5m"
+          }
+        },
+        {
+          "name": "Stock News",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/news?limit=10&window=today"
+          }
+        },
+        {
+          "name": "Stock Earnings History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/earnings"
+          }
+        },
+        {
+          "name": "Stock Next Earnings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/next-earnings"
+          }
+        },
+        {
+          "name": "Stock Holders",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/holders"
+          }
+        },
+        {
+          "name": "Stock Filings",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/filings?filing_type=10-K&limit=20"
+          }
+        },
+        {
+          "name": "Stock Insider Transactions",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/insiders?limit=50"
+          }
+        },
+        {
+          "name": "Stock AI Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/ai-summary"
+          }
+        },
+        {
+          "name": "Stock Summary",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/summary"
+          }
+        },
+        {
+          "name": "What Happened",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/what-happened?window=today"
+          }
+        },
+        {
+          "name": "Stock Sentiment",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/sentiment?window=today"
+          }
+        },
+        {
+          "name": "Research Snapshot",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/research-snapshot?window=today"
+          }
+        },
+        {
+          "name": "Stock Risks",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/risks"
+          }
+        },
+        {
+          "name": "Bull vs Bear",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/bull-bear"
+          }
+        },
+        {
+          "name": "Earnings Brief",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/earnings-brief"
+          }
+        },
+        {
+          "name": "Filing Brief",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/filing-brief"
+          }
+        },
+        {
+          "name": "Investor Checklist",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/stock/{{ticker}}/investor-checklist"
+          }
+        },
+        {
+          "name": "Compat - Quote",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/quote/{{ticker}}"
+          }
+        },
+        {
+          "name": "Compat - Compare Stocks",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/compare?ticker_a={{tickerA}}&ticker_b={{tickerB}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Earnings Module",
+      "item": [
+        {
+          "name": "Earnings Calendar",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/earnings/calendar?start=2026-05-01&end=2026-05-31&tickers=AAPL,MSFT"
+          }
+        },
+        {
+          "name": "Earnings History by Ticker",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/earnings/{{ticker}}/history?limit=8"
+          }
+        },
+        {
+          "name": "Next Earnings by Ticker",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/earnings/{{ticker}}/next"
+          }
+        },
+        {
+          "name": "Earnings Surprise Stats",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/earnings/{{ticker}}/surprise-stats"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. AI Querying",
+      "item": [
+        {
+          "name": "Ask (Fast/Deep Routed)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticker\": \"AAPL\",\n  \"query\": \"What happened to Apple today?\",\n  \"window\": \"today\",\n  \"focus\": [\"fundamentals\", \"news\", \"earnings\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/ask"
+          }
+        },
+        {
+          "name": "Analyze (Legacy Compatibility)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticker\": \"NVDA\",\n  \"question\": \"Analyze Nvidia as a long-term AI infrastructure company.\",\n  \"window\": \"past_month\",\n  \"focus\": [\"fundamentals\", \"earnings\", \"filings\", \"news\", \"sentiment\"],\n  \"date\": \"2026-05-08\",\n  \"profile\": {}\n}"
+            },
+            "url": "{{baseUrl}}/api/analyze"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Deep Research Jobs",
+      "item": [
+        {
+          "name": "Submit Research Job",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticker\": \"NVDA\",\n  \"question\": \"Analyze Nvidia as a long-term AI infrastructure company.\",\n  \"window\": \"past_month\",\n  \"focus\": [\"fundamentals\", \"earnings\", \"filings\", \"news\", \"sentiment\"],\n  \"date\": \"2026-05-08\",\n  \"profile\": {}\n}"
+            },
+            "url": "{{baseUrl}}/api/research"
+          }
+        },
+        {
+          "name": "List Research Jobs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/research?limit=20"
+          }
+        },
+        {
+          "name": "Get Research by ID",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/research/{{researchId}}"
+          }
+        },
+        {
+          "name": "Stream Research Status (SSE)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/research/stream/{{researchId}}"
+          }
+        },
+        {
+          "name": "Stream Research Status Alias (SSE)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/research/{{researchId}}/stream"
+          }
+        },
+        {
+          "name": "Legacy Stream Submit (SSE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticker\": \"NVDA\",\n  \"question\": \"Analyze Nvidia as a long-term AI infrastructure company.\",\n  \"window\": \"past_month\",\n  \"date\": \"2026-05-08\"\n}"
+            },
+            "url": "{{baseUrl}}/api/research/stream"
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Screener",
+      "item": [
+        {
+          "name": "Screener (Compat)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sector\": \"Technology\",\n  \"min_market_cap\": 10000000000,\n  \"max_pe\": 30,\n  \"min_profit_margin\": 0.1\n}"
+            },
+            "url": "{{baseUrl}}/api/screener"
+          }
+        },
+        {
+          "name": "Screener Run",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sector\": \"Technology\",\n  \"min_market_cap\": 10000000000,\n  \"max_pe\": 30,\n  \"min_profit_margin\": 0.1\n}"
+            },
+            "url": "{{baseUrl}}/api/screener/run"
+          }
+        },
+        {
+          "name": "Screener NL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"profitable technology stocks with P/E under 25\"\n}"
+            },
+            "url": "{{baseUrl}}/api/screener/nl"
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Watchlist",
+      "item": [
+        {
+          "name": "Create Watchlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My Core Tech\",\n  \"tickers\": [\"AAPL\", \"MSFT\", \"NVDA\"]\n}"
+            },
+            "url": "{{baseUrl}}/api/watchlist"
+          }
+        },
+        {
+          "name": "List Watchlists",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/watchlist"
+          }
+        },
+        {
+          "name": "Get Watchlist",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/watchlist/{{watchlistId}}"
+          }
+        },
+        {
+          "name": "Add Ticker to Watchlist",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticker\": \"AMZN\"\n}"
+            },
+            "url": "{{baseUrl}}/api/watchlist/{{watchlistId}}/tickers"
+          }
+        },
+        {
+          "name": "Remove Ticker from Watchlist",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/watchlist/{{watchlistId}}/tickers/{{ticker}}"
+          }
+        },
+        {
+          "name": "Delete Watchlist",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/watchlist/{{watchlistId}}"
+          }
+        },
+        {
+          "name": "Watchlist Quotes",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/watchlist/{{watchlistId}}/quotes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Portfolio Snapshots",
+      "item": [
+        {
+          "name": "Create Snapshot",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"label\": \"Research snapshot\",\n  \"holdings\": {\n    \"AAPL\": 0.4,\n    \"MSFT\": 0.3,\n    \"NVDA\": 0.3\n  },\n  \"research_id\": \"\"\n}"
+            },
+            "url": "{{baseUrl}}/api/portfolio/snapshots"
+          }
+        },
+        {
+          "name": "List Snapshots",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/portfolio/snapshots"
+          }
+        },
+        {
+          "name": "Get Snapshot",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/portfolio/snapshots/{{snapshotId}}"
+          }
+        },
+        {
+          "name": "Delete Snapshot",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/api/portfolio/snapshots/{{snapshotId}}"
+          }
+        }
+      ]
+    },
+    {
+      "name": "11. Admin & Observability",
+      "item": [
+        {
+          "name": "Admin Status",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/status"
+          }
+        },
+        {
+          "name": "Admin Providers",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/providers"
+          }
+        },
+        {
+          "name": "Admin Cache",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/cache"
+          }
+        },
+        {
+          "name": "Admin Research Jobs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/research-jobs?limit=100"
+          }
+        },
+        {
+          "name": "Admin Agent Runs",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/agent-runs?limit=100"
+          }
+        },
+        {
+          "name": "Admin Agent Methodology",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/agent-methodology"
+          }
+        },
+        {
+          "name": "Admin LLM Usage",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/llm-usage?limit=100"
+          }
+        },
+        {
+          "name": "Admin Cost",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/cost"
+          }
+        },
+        {
+          "name": "Admin Errors",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/api/admin/errors?limit=100"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -28,7 +28,9 @@ class CacheMiddleware(BaseHTTPMiddleware):
             or request.url.path.endswith("/stream")
             or request.url.path.startswith("/api/research")
             or request.url.path.startswith("/api/watchlist")
+            or request.url.path.startswith("/api/admin")
             or request.headers.get("authorization")
+            or request.headers.get("x-api-key")
         ):
             return await call_next(request)
         key = hashlib.sha256(str(request.url).encode("utf-8")).hexdigest()

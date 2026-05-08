@@ -9,15 +9,14 @@ import time
 from collections import deque
 from typing import Any
 
-from tradingagents.utils.http import safe_post_json
+from tradingagents.utils.http import DEFAULT_TIMEOUT, safe_post_json
 
 logger = logging.getLogger(__name__)
 
 DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-DEFAULT_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-v4")
-FAST_MODEL = os.environ.get("DEEPSEEK_FAST_MODEL") or DEFAULT_MODEL
-DEEP_MODEL = os.environ.get("DEEPSEEK_DEEP_MODEL") or DEFAULT_MODEL
-DEEPSEEK_CALLS_PER_MINUTE = int(os.environ.get("DEEPSEEK_CALLS_PER_MINUTE", "20"))
+DEEPSEEK_V4_ALIAS = "deepseek-v4"
+DEEPSEEK_V4_FAST = "deepseek-v4-flash"
+DEEPSEEK_V4_DEEP = "deepseek-v4-pro"
 
 _lock = threading.Lock()
 _hits: deque[float] = deque()
@@ -32,9 +31,48 @@ def _check_rate_limit() -> None:
     with _lock:
         while _hits and now - _hits[0] > 60:
             _hits.popleft()
-        if len(_hits) >= DEEPSEEK_CALLS_PER_MINUTE:
+        limit = int(os.environ.get("DEEPSEEK_CALLS_PER_MINUTE", "20"))
+        if len(_hits) >= limit:
             raise DeepSeekRateLimitError("DeepSeek internal rate limit exceeded.")
         _hits.append(now)
+
+
+def configured_deepseek_model() -> str:
+    """Return the configured DeepSeek model name."""
+
+    return os.environ.get("DEEPSEEK_MODEL", DEEPSEEK_V4_ALIAS)
+
+
+def resolve_deepseek_model(mode: str = "fast") -> str:
+    """Resolve model aliases and mode-specific overrides.
+
+    DeepSeek's API currently exposes `deepseek-v4-flash` and
+    `deepseek-v4-pro`. If `DEEPSEEK_MODEL=deepseek-v4` is used, IMPERIA
+    resolves that alias by execution mode. Otherwise the configured model
+    is used directly.
+    """
+
+    default_model = configured_deepseek_model()
+    override = os.environ.get("DEEPSEEK_FAST_MODEL" if mode == "fast" else "DEEPSEEK_DEEP_MODEL")
+    selected = (override or default_model).strip()
+    if selected == DEEPSEEK_V4_ALIAS:
+        return DEEPSEEK_V4_FAST if mode == "fast" else DEEPSEEK_V4_DEEP
+    return selected
+
+
+def deepseek_model_status() -> dict[str, Any]:
+    """Return sanitized model configuration for health/admin responses."""
+
+    default_model = configured_deepseek_model()
+    return {
+        "configured_model": default_model,
+        "fast_model": os.environ.get("DEEPSEEK_FAST_MODEL") or default_model,
+        "deep_model": os.environ.get("DEEPSEEK_DEEP_MODEL") or default_model,
+        "resolved_fast_model": resolve_deepseek_model("fast"),
+        "resolved_deep_model": resolve_deepseek_model("deep"),
+        "thinking_mode": os.environ.get("DEEPSEEK_THINKING", "disabled"),
+        "alias_resolution": "deepseek-v4 resolves to deepseek-v4-flash for fast mode and deepseek-v4-pro for deep mode.",
+    }
 
 
 def deepseek_chat(
@@ -42,8 +80,8 @@ def deepseek_chat(
     *,
     mode: str = "fast",
     temperature: float = 0.3,
-    max_tokens: int = 800,
-    timeout: int = 15,
+    max_tokens: int | None = None,
+    timeout: tuple[int, int] | None = None,
     agent_name: str | None = None,
     ticker: str | None = None,
     intent: str | None = None,
@@ -55,22 +93,38 @@ def deepseek_chat(
     api_key = os.environ.get("DEEPSEEK_API_KEY")
     if not api_key:
         return None
-    _check_rate_limit()
-    model = FAST_MODEL if mode == "fast" else DEEP_MODEL
+    # Catch internal rate limit -- return None instead of propagating so all
+    # callers get the same graceful fallback regardless of call depth.
+    try:
+        _check_rate_limit()
+    except DeepSeekRateLimitError:
+        logger.warning("deepseek_rate_limit mode=%s -- returning None to allow deterministic fallback", mode)
+        return None
+    model = resolve_deepseek_model(mode)
+    if timeout is None:
+        connect_timeout = int(os.environ.get("DEEPSEEK_TIMEOUT_CONNECT", "5"))
+        read_timeout = int(os.environ.get("DEEPSEEK_FAST_TIMEOUT_READ" if mode == "fast" else "DEEPSEEK_DEEP_TIMEOUT_READ", "30" if mode == "fast" else "60"))
+        timeout = (connect_timeout, read_timeout)
+    attempts = int(os.environ.get("DEEPSEEK_FAST_ATTEMPTS" if mode == "fast" else "DEEPSEEK_DEEP_ATTEMPTS", "1"))
     started = time.perf_counter()
     usage: dict[str, Any] = {}
     try:
+        request_payload = {
+            "model": model,
+            "temperature": temperature,
+            "messages": messages,
+        }
+        if max_tokens is not None:
+            request_payload["max_tokens"] = max_tokens
+        thinking_mode = os.environ.get("DEEPSEEK_THINKING", "disabled").strip().lower()
+        if thinking_mode in {"disabled", "enabled"}:
+            request_payload["thinking"] = {"type": thinking_mode}
         payload = safe_post_json(
             f"{DEEPSEEK_BASE_URL.rstrip('/')}/v1/chat/completions",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json_payload={
-                "model": model,
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-                "messages": messages,
-            },
+            json_payload=request_payload,
             source=f"deepseek_{mode}",
-            attempts=1,
+            attempts=attempts,
             timeout=timeout,
         )
         usage = payload.get("usage", {}) if isinstance(payload, dict) else {}
