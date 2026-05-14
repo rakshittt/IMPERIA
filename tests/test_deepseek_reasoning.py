@@ -24,8 +24,7 @@ from tradingagents.llm_clients.openai_client import (
 
 
 # ---------------------------------------------------------------------------
-# _input_to_messages — the helper that handles list / ChatPromptValue / other
-# (Gemini bot review note: non-list inputs must also work)
+# _input_to_messages - the helper that handles list / ChatPromptValue / other
 # ---------------------------------------------------------------------------
 
 
@@ -101,8 +100,7 @@ class TestDeepSeekReasoningContent:
         assert assistant_dicts[0]["reasoning_content"] == "weighed bull case"
 
     def test_propagate_through_chat_prompt_value(self):
-        """Gemini bot review note: non-list inputs (ChatPromptValue) must
-        also propagate reasoning_content."""
+        """ChatPromptValue inputs must also propagate reasoning_content."""
         client = self._client()
         prior = AIMessage(
             content="Plan",

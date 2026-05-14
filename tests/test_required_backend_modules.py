@@ -5,9 +5,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from tradingagents.api.main import create_app
-from tradingagents.cache.redis_cache import redis_status
+from tradingagents.infra.cache.redis import redis_status
 from tradingagents.dataflows import analyst_consensus, form4_parser, fred_macro, peer_comparison, thirteen_f_parser
-from tradingagents.engine import stock_intelligence
+from tradingagents.core.intelligence import stock as stock_intelligence
 from tradingagents.persistence import db as db_module
 from tradingagents.persistence.db import PersistenceDB
 from tradingagents.workers import background_jobs

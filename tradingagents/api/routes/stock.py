@@ -4,9 +4,11 @@ from fastapi import APIRouter, HTTPException, Query
 
 from tradingagents.api.deps import get_fast_engine
 from tradingagents.api.responses import standard_response
-from tradingagents.dataflows import earnings_data, market_data, news_aggregator
-from tradingagents.engine import stock_intelligence
-from tradingagents.engine.stock_sentiment import get_stock_sentiment
+import tradingagents.providers.financials.earnings as earnings_data
+import tradingagents.providers.market.data as market_data
+import tradingagents.providers.news.aggregator as news_aggregator
+from tradingagents.core.intelligence import stock as stock_intelligence
+from tradingagents.core.intelligence.sentiment import get_stock_sentiment
 from tradingagents.utils.validation import normalize_ticker
 
 router = APIRouter(prefix="/api/stock", tags=["stock"])

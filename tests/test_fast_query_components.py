@@ -1,7 +1,7 @@
 import pytest
 
 from tradingagents.engine.citation_tracker import CitationTracker, attach_citations
-from tradingagents.engine.query_router import route_query
+from tradingagents.core.query.router import route_query
 from tradingagents.engine.search import ticker_resolver
 
 

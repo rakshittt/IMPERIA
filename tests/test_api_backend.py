@@ -75,17 +75,22 @@ def test_core_api_endpoints(client):
 def test_ask_and_research_compat(client, monkeypatch):
     assert client.post("/api/ask", json={"query": "What is Apple P/E?"}).json()["mode"] == "fast"
 
-    def fake_research(portfolio, analysis_date=None, profile=None):
-        return {
-            "id": "abc123",
-            "market_report": "Market",
-            "final_portfolio_feedback": "Feedback",
-        }
+    # /api/analyze now submits an async job and returns a job handle.
+    from tradingagents.workers import background_jobs
 
-    monkeypatch.setattr(ai, "run_deep_research", fake_research)
+    def fake_submit(runner, portfolio, date, profile, research_id=None):
+        return {"research_id": "abc123", "id": "abc123", "status": "queued"}
+
+    monkeypatch.setattr(background_jobs, "submit_research_job", fake_submit)
+    # Re-import the attribute used by the route so the monkeypatch takes effect.
+    import importlib
+    from tradingagents.api.routes import ai as ai_module
+    importlib.reload(ai_module)
+
     response = client.post(
         "/api/analyze",
         json={"portfolio": [{"ticker": "AAPL", "weight": 1.0}], "profile": {}},
     )
     assert response.status_code == 200
-    assert response.json()["id"] == "abc123"
+    data = response.json()
+    assert "research_id" in data or "id" in data

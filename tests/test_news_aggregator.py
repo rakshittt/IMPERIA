@@ -1,7 +1,7 @@
 import pytest
 
-from tradingagents.cache.sqlite_cache import SQLiteCache
-from tradingagents.dataflows import news_aggregator
+from tradingagents.infra.cache.sqlite import SQLiteCache
+from tradingagents.providers.news import aggregator as news_aggregator
 
 
 @pytest.fixture()

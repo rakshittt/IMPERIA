@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 
 from tradingagents.api.main import create_app
 from tradingagents.api.routes import earnings, market, research, screener, stock, watchlist
-from tradingagents.dataflows.screener import ScreenerCriteria, ScreenerResult
+from tradingagents.providers.financials.screener import ScreenerCriteria, ScreenerResult
 
 
 class Dumpable:

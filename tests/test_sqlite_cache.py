@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from tradingagents.cache.sqlite_cache import SQLiteCache
+from tradingagents.infra.cache.sqlite import SQLiteCache
 
 
 @pytest.mark.unit

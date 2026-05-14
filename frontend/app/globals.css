@@ -1,0 +1,38 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-zinc-950 text-white antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-zinc-700 rounded; }
+::-webkit-scrollbar-thumb:hover { @apply bg-zinc-600; }
+
+/* Prose for AI answers */
+.prose-ai {
+  @apply text-sm text-zinc-300 leading-relaxed;
+}
+.prose-ai strong { @apply text-white font-semibold; }
+.prose-ai em { @apply text-zinc-200; }
+.prose-ai p { @apply mb-3; }
+.prose-ai ul { @apply list-disc pl-4 space-y-1 mb-3; }
+.prose-ai ol { @apply list-decimal pl-4 space-y-1 mb-3; }
+.prose-ai li { @apply text-zinc-300; }
+.prose-ai h3, .prose-ai h4 { @apply text-white font-semibold mt-4 mb-1 text-sm; }
+
+/* SSE stream animation */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.cursor-blink { animation: blink 1s step-end infinite; }

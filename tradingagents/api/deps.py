@@ -10,7 +10,7 @@ from fastapi import Header, HTTPException
 
 @lru_cache(maxsize=1)
 def get_fast_engine():
-    from tradingagents.engine.fast_query import FastQueryEngine
+    from tradingagents.core.intelligence.fast_query import FastQueryEngine
     return FastQueryEngine()
 
 

@@ -1,34 +1,3 @@
-"""Cache invalidation helpers for backend data namespaces."""
-
-from __future__ import annotations
-
-from tradingagents.cache.sqlite_cache import SQLiteCache, get_default_cache
-
-
-def invalidate_symbol(
-    ticker: str,
-    namespaces: list[str] | None = None,
-    cache: SQLiteCache | None = None,
-) -> None:
-    """Best-effort invalidation for symbol-scoped cache entries."""
-
-    selected = namespaces or [
-        "quotes",
-        "profiles",
-        "financials",
-        "news",
-        "ai_summaries",
-        "sec_filings",
-        "sec_submissions",
-        "sec_companyfacts",
-    ]
-    symbol = ticker.upper().strip()
-    backend_cache = cache or get_default_cache()
-    for namespace in selected:
-        backend_cache.delete(namespace, symbol)
-
-
-def prune_expired(cache: SQLiteCache | None = None) -> int:
-    """Remove expired rows from the default cache."""
-
-    return (cache or get_default_cache()).prune_expired()
+# Backward-compatible re-export. Import from tradingagents.infra.cache.invalidation for new code.
+from tradingagents.infra.cache.invalidation import *  # noqa: F401 F403
+from tradingagents.infra.cache.invalidation import invalidate_symbol, prune_expired  # noqa: F401

@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from tradingagents.api.models import ScreenerNLRequest
-from tradingagents.dataflows.screener import ScreenerCriteria, parse_nl_screener_query, screen_stocks
+from tradingagents.providers.financials.screener import ScreenerCriteria, parse_nl_screener_query, screen_stocks
 
 router = APIRouter(prefix="/api/screener", tags=["screener"])
 

@@ -8,12 +8,12 @@ from sse_starlette.sse import EventSourceResponse
 
 from tradingagents.api.deps import require_api_key
 from tradingagents.api.models import ResearchRequest
-from tradingagents.api.services import research_store, run_deep_research, run_stock_expert_research
-from tradingagents.persistence.portfolio import (
+from tradingagents.api.services import research_store, run_stock_expert_research
+from tradingagents.infra.db.portfolio import (
     get_persisted_research,
     list_research_results,
 )
-from tradingagents.workers.background_jobs import (
+from tradingagents.core.research.jobs import (
     get_research_job,
     research_events,
     research_status_event,
@@ -38,30 +38,28 @@ async def submit_research(payload: ResearchRequest):
     profile = payload.profile or {}
     profile.update(
         {
-            "ticker": payload.ticker,
+            "ticker": payload.ticker or portfolio[0].get("ticker"),
             "question": payload.question,
             "window": payload.window,
             "focus": payload.focus,
-            "stock_first": bool(payload.ticker and not payload.portfolio),
         }
     )
-    runner = run_stock_expert_research if payload.ticker and not payload.portfolio else run_deep_research
-    return submit_research_job(runner, portfolio, payload.date, profile)
+    return submit_research_job(run_stock_expert_research, portfolio, payload.date, profile)
 
 
 @router.get("/stream/{research_id}")
 async def stream_research_status(research_id: str):
     async def event_generator():
-        last = None
         event_index = 0
+        last_status = None
         for _ in range(240):
             for event in research_events(research_id, event_index):
                 event_index += 1
                 yield {"event": event.get("event", "status"), "data": json.dumps(event, default=str)}
             payload = research_status_event(research_id)
-            if payload != last:
+            if payload != last_status:
                 yield {"event": "status", "data": payload}
-                last = payload
+                last_status = payload
             job = get_research_job(research_id)
             if job and job.get("status") in {"completed", "failed"}:
                 break
@@ -83,7 +81,7 @@ async def legacy_stream_research(payload: ResearchRequest):
     if not portfolio and payload.ticker:
         portfolio = [{"ticker": payload.ticker, "weight": 1.0}]
     submitted = submit_research_job(
-        run_stock_expert_research if payload.ticker and not payload.portfolio else run_deep_research,
+        run_stock_expert_research,
         portfolio,
         payload.date,
         {**(payload.profile or {}), "ticker": payload.ticker, "question": payload.question, "window": payload.window},

@@ -5,7 +5,7 @@ import pytest
 from tradingagents.persistence import db as db_module
 from tradingagents.persistence.db import PersistenceDB
 from tradingagents.persistence import portfolio, watchlist
-from tradingagents.dataflows.market_data import QuoteData
+from tradingagents.providers.market.data import QuoteData
 
 
 @pytest.fixture()

@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
 from tradingagents.api.responses import standard_response
-from tradingagents.persistence.portfolio import delete_portfolio_snapshot, get_portfolio_snapshot, list_portfolio_snapshots, save_portfolio_snapshot
+from tradingagents.infra.db.portfolio import delete_portfolio_snapshot, get_portfolio_snapshot, list_portfolio_snapshots, save_portfolio_snapshot
 from tradingagents.utils.validation import normalize_ticker
 
 router = APIRouter(prefix="/api/portfolio", tags=["portfolio"])

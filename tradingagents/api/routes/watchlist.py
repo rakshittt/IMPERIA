@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException
 
 from tradingagents.api.models import WatchlistCreateRequest, WatchlistTickerRequest
-from tradingagents.persistence.watchlist import (
+from tradingagents.infra.db.watchlist import (
     add_ticker_to_watchlist,
     create_watchlist,
     delete_watchlist,

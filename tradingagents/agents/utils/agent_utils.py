@@ -99,7 +99,7 @@ def build_instrument_context(ticker: str) -> str:
 
 def create_msg_delete():
     def delete_messages(state):
-        """Clear messages and add placeholder for Anthropic compatibility"""
+        """Clear messages and add a placeholder so the graph can continue."""
         messages = state["messages"]
 
         # Remove all messages

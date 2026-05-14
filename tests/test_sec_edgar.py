@@ -1,6 +1,6 @@
 import pytest
 
-from tradingagents.dataflows import sec_edgar
+from tradingagents.providers.filings import edgar as sec_edgar
 
 
 @pytest.mark.unit

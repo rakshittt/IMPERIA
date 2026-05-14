@@ -12,8 +12,8 @@ from tradingagents.api.middleware.rate_limiter import RateLimitMiddleware
 from tradingagents.api.middleware.request_id import RequestIDMiddleware
 from tradingagents.api.middleware.security import SecurityHeadersMiddleware
 from tradingagents.api.routes import admin, ai, earnings, market, portfolio, research, screener, search, stock, watchlist
-from tradingagents.dataflows.provider_registry import configured_provider_status
-from tradingagents.utils.deepseek import deepseek_model_status
+from tradingagents.providers.registry import configured_provider_status
+from tradingagents.infra.llm.deepseek import deepseek_model_status
 
 load_dotenv()
 
@@ -90,9 +90,9 @@ def create_app() -> FastAPI:
         overall = "ok"
 
         try:
-            from tradingagents.cache.sqlite_cache import get_default_cache
+            from tradingagents.infra.cache.sqlite import get_default_cache
             cache = get_default_cache()
-            cache.set("__healthcheck__", {"ok": True}, ttl_seconds=5)
+            cache.set("health", "__healthcheck__", {"ok": True}, ttl_seconds=5)
             checks["sqlite_cache"] = "ok"
         except Exception as exc:
             checks["sqlite_cache"] = f"failed: {type(exc).__name__}"

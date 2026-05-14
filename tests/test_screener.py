@@ -1,8 +1,8 @@
 import pytest
 
-from tradingagents.cache.sqlite_cache import SQLiteCache
-from tradingagents.dataflows import screener
-from tradingagents.dataflows.market_data import QuoteData
+from tradingagents.infra.cache.sqlite import SQLiteCache
+import tradingagents.providers.financials.screener as screener
+from tradingagents.providers.market.data import QuoteData
 
 
 @pytest.fixture()

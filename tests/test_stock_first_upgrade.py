@@ -3,7 +3,9 @@ from fastapi.testclient import TestClient
 
 from tradingagents.api.main import create_app
 from tradingagents.api.routes import research
-from tradingagents.dataflows import demo_provider, news_aggregator, polymarket_sentiment
+import tradingagents.providers.demo.provider as demo_provider
+import tradingagents.providers.news.aggregator as news_aggregator
+import tradingagents.providers.sentiment.polymarket as polymarket_sentiment
 
 
 @pytest.fixture()

@@ -12,15 +12,7 @@ def pytest_configure(config):
 
 
 _API_KEY_ENV_VARS = (
-    "OPENAI_API_KEY",
-    "GOOGLE_API_KEY",
-    "ANTHROPIC_API_KEY",
-    "XAI_API_KEY",
     "DEEPSEEK_API_KEY",
-    "DASHSCOPE_API_KEY",
-    "ZHIPU_API_KEY",
-    "OPENROUTER_API_KEY",
-    "AZURE_OPENAI_API_KEY",
     "ALPHA_VANTAGE_API_KEY",
 )
 
@@ -36,7 +28,7 @@ def mock_llm_client():
     client = MagicMock()
     client.get_llm.return_value = MagicMock()
     with patch(
-        "tradingagents.llm_clients.factory.create_llm_client",
+        "tradingagents.infra.llm.factory.create_llm_client",
         return_value=client,
     ):
         yield client

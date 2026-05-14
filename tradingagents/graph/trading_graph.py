@@ -56,9 +56,7 @@ class TradingAgentsGraph:
         os.makedirs(self.config["data_cache_dir"], exist_ok=True)
         os.makedirs(self.config["results_dir"], exist_ok=True)
 
-        llm_kwargs = self._get_provider_kwargs()
-        if self.callbacks:
-            llm_kwargs["callbacks"] = self.callbacks
+        llm_kwargs = {"callbacks": self.callbacks} if self.callbacks else {}
 
         deep_client = create_llm_client(
             provider=self.config["llm_provider"],
@@ -100,28 +98,6 @@ class TradingAgentsGraph:
         self.workflow = self.graph_setup.setup_graph(selected_analysts)
         self.graph = self.workflow.compile()
         self._checkpointer_ctx = None
-
-    def _get_provider_kwargs(self) -> Dict[str, Any]:
-        """Get provider-specific kwargs for LLM client creation."""
-        kwargs = {}
-        provider = self.config.get("llm_provider", "").lower()
-
-        if provider == "google":
-            thinking_level = self.config.get("google_thinking_level")
-            if thinking_level:
-                kwargs["thinking_level"] = thinking_level
-
-        elif provider == "openai":
-            reasoning_effort = self.config.get("openai_reasoning_effort")
-            if reasoning_effort:
-                kwargs["reasoning_effort"] = reasoning_effort
-
-        elif provider == "anthropic":
-            effort = self.config.get("anthropic_effort")
-            if effort:
-                kwargs["effort"] = effort
-
-        return kwargs
 
     def _create_tool_nodes(self) -> Dict[str, ToolNode]:
         """Create tool nodes for different data sources using abstract methods."""

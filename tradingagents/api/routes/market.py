@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Query
 
-from tradingagents.dataflows import market_data, news_aggregator
+import tradingagents.providers.market.data as market_data
+import tradingagents.providers.news.aggregator as news_aggregator
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 compat_router = APIRouter(tags=["compat"])

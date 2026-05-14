@@ -10,7 +10,7 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse, Response
 
-from tradingagents.cache.sqlite_cache import get_default_cache
+from tradingagents.infra.cache.sqlite import get_default_cache
 
 
 class CacheMiddleware(BaseHTTPMiddleware):

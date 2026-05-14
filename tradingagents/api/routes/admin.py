@@ -10,13 +10,13 @@ from fastapi import APIRouter, Depends
 
 from tradingagents.api.deps import require_api_key
 from tradingagents.api.responses import standard_response
-from tradingagents.cache.redis_cache import redis_status
-from tradingagents.cache.sqlite_cache import get_default_cache
-from tradingagents.dataflows.provider_registry import configured_provider_status
-from tradingagents.expert_agents.skill_pack import agent_methods_for_response
-from tradingagents.persistence.portfolio import list_research_results
-from tradingagents.persistence.usage import list_agent_runs, list_errors, list_llm_usage, llm_usage_summary
-from tradingagents.workers.background_jobs import MAX_WORKERS
+from tradingagents.infra.cache.redis import redis_status
+from tradingagents.infra.cache.sqlite import get_default_cache
+from tradingagents.providers.registry import configured_provider_status
+from tradingagents.core.agents.skill_pack import agent_methods_for_response
+from tradingagents.infra.db.portfolio import list_research_results
+from tradingagents.infra.db.usage import list_agent_runs, list_errors, list_llm_usage, llm_usage_summary
+from tradingagents.core.research.jobs import MAX_WORKERS
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_api_key)])
 

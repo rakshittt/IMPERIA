@@ -1,8 +1,8 @@
 import pandas as pd
 import pytest
 
-from tradingagents.cache.sqlite_cache import SQLiteCache
-from tradingagents.dataflows import earnings_data
+from tradingagents.infra.cache.sqlite import SQLiteCache
+from tradingagents.providers.financials import earnings as earnings_data
 
 
 @pytest.fixture()

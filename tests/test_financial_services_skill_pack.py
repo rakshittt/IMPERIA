@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from tradingagents.api.main import create_app
 from tradingagents.expert_agents import runtime as runtime_module
 from tradingagents.expert_agents.agents import fundamentals
-from tradingagents.expert_agents.skill_pack import (
+from tradingagents.core.agents.skill_pack import (
     METHODS_BY_AGENT,
     SKILL_PACK_VERSION,
     agent_method_prompt,
@@ -16,7 +16,7 @@ from tradingagents.expert_agents.skill_pack import (
 from tradingagents.persistence import db as db_module
 from tradingagents.persistence.db import PersistenceDB
 from tradingagents.utils.safety import find_forbidden_phrases
-from tradingagents.utils.deepseek import resolve_deepseek_model
+from tradingagents.infra.llm.deepseek import resolve_deepseek_model
 
 
 def _bundle():

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import json
 import re
 from datetime import datetime
@@ -12,16 +11,16 @@ from fastapi.responses import JSONResponse
 from tradingagents.api.deps import get_fast_engine
 from tradingagents.api.models import AskRequest, ResearchRequest
 from tradingagents.api.responses import standard_response
-from tradingagents.api.services import run_deep_research, run_stock_expert_research
-from tradingagents.engine.query_router import route_query
-from tradingagents.engine.safety import assess_query, reframe_prompt, sanitize_answer
-from tradingagents.engine import stock_intelligence
-from tradingagents.dataflows import market_data
-from tradingagents.expert_agents.planner import plan_query
-from tradingagents.expert_agents.runtime import ExpertAgentRuntime
-from tradingagents.utils.deepseek import deepseek_text
+from tradingagents.api.services import run_stock_expert_research
+from tradingagents.core.query.router import route_query
+from tradingagents.core.safety import assess_query, reframe_prompt, sanitize_answer
+from tradingagents.core.intelligence import stock as stock_intelligence
+import tradingagents.providers.market.data as market_data
+from tradingagents.core.agents.planner import plan_query
+from tradingagents.core.research.runtime import ExpertAgentRuntime
+from tradingagents.infra.llm.deepseek import deepseek_text
 from tradingagents.utils.validation import normalize_ticker
-from tradingagents.workers.background_jobs import submit_research_job
+from tradingagents.core.research.jobs import submit_research_job
 
 router = APIRouter(prefix="/api", tags=["ai"])
 
@@ -266,8 +265,7 @@ async def ask(payload: AskRequest):
         )
     profile = payload.profile or {}
     profile.update({"question": payload.query, "window": payload.window, "focus": payload.focus, "stock_first": bool(ticker)})
-    runner = run_stock_expert_research if ticker and not payload.portfolio else run_deep_research
-    submitted = submit_research_job(runner, portfolio, payload.date, profile)
+    submitted = submit_research_job(run_stock_expert_research, portfolio, payload.date, profile)
     response = standard_response(
         {"mode": "deep", "route": route.to_dict(), "research_id": submitted["research_id"], "status": submitted["status"], "ticker": ticker},
         warnings=[],
@@ -281,6 +279,11 @@ async def ask(payload: AskRequest):
 
 @router.post("/analyze")
 async def analyze_compat(request: Request):
+    """Backward-compatible synchronous research endpoint.
+
+    Submits a background job and returns the job handle immediately.
+    Clients should poll /api/research/{id} or use the SSE stream.
+    """
     data = await request.json()
     payload = ResearchRequest(
         portfolio=data.get("portfolio", []),
@@ -294,5 +297,8 @@ async def analyze_compat(request: Request):
     portfolio = [item.model_dump(exclude_none=True) for item in payload.portfolio or []]
     if not portfolio and payload.ticker:
         portfolio = [{"ticker": payload.ticker, "weight": 1.0}]
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(None, run_deep_research, portfolio, payload.date, payload.profile or {})
+    profile = payload.profile or {}
+    profile.setdefault("ticker", payload.ticker or (portfolio[0].get("ticker") if portfolio else None))
+    profile.setdefault("question", payload.question)
+    profile.setdefault("window", payload.window)
+    return submit_research_job(run_stock_expert_research, portfolio, payload.date, profile)

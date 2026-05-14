@@ -7,7 +7,7 @@ from tradingagents.api.main import create_app
 from tradingagents.api.routes import research
 from tradingagents.persistence import db as db_module
 from tradingagents.persistence.db import PersistenceDB
-from tradingagents.persistence.portfolio import get_persisted_research
+from tradingagents.infra.db.portfolio import get_persisted_research
 from tradingagents.workers import background_jobs
 
 

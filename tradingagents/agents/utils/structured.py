@@ -4,9 +4,9 @@ The Portfolio Feedback Manager and Research Manager follow the same
 canonical pattern:
 
 1. At agent creation, wrap the LLM with ``with_structured_output(Schema)``
-   so the model returns a typed Pydantic instance. If the provider does
-   not support structured output (rare; mostly older Ollama models), the
-   wrap is skipped and the agent uses free-text generation instead.
+   so the model returns a typed Pydantic instance. If the model does not
+   support structured output, the wrap is skipped and the agent uses
+   free-text generation instead.
 2. At invocation, run the structured call and render the result back to
    markdown. If the structured call itself fails for any reason
    (malformed JSON from a weak model, transient provider issue), fall

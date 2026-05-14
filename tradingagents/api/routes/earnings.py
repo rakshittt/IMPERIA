@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, Query
 
-from tradingagents.dataflows import earnings_data
+import tradingagents.providers.financials.earnings as earnings_data
 from tradingagents.utils.validation import normalize_ticker, validate_iso_date
 
 router = APIRouter(prefix="/api/earnings", tags=["earnings"])
